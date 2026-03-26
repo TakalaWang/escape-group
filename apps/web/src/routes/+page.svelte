@@ -2,6 +2,14 @@
   let { data } = $props();
 </script>
 
+<svelte:head>
+  <title>Escape Group — 密室逃脫揪團平台</title>
+  <meta name="description" content="信用制度保障每一場密室體驗。輕鬆開團、安心揪人、告別跳車。" />
+  <meta property="og:title" content="Escape Group — 密室逃脫揪團平台" />
+  <meta property="og:description" content="信用制度保障每一場密室體驗。輕鬆開團、安心揪人、告別跳車。" />
+  <meta property="og:type" content="website" />
+</svelte:head>
+
 <div class="relative overflow-hidden">
   <!-- Hero background effects -->
   <div class="pointer-events-none absolute inset-0">

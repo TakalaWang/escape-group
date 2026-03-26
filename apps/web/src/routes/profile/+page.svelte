@@ -10,6 +10,14 @@
     excused: "請假",
   };
 
+  const groupStatusLabels: Record<string, string> = {
+    open: "招募中",
+    full: "已額滿",
+    confirmed: "已確認",
+    completed: "已結束",
+    cancelled: "已取消",
+  };
+
   function formatDate(d: string | null) {
     if (!d) return "待定";
     return new Date(d).toLocaleDateString("zh-TW", {
@@ -18,6 +26,17 @@
       weekday: "short",
     });
   }
+
+  const activeGroups = data.history.filter(
+    (h) => h.groupStatus === "open" || h.groupStatus === "full" || h.groupStatus === "confirmed"
+  );
+  const pastGroups = data.history.filter(
+    (h) => h.groupStatus === "completed" || h.groupStatus === "cancelled"
+  );
+
+  // Stats
+  const totalGames = pastGroups.filter((h) => h.memberStatus === "attended").length;
+  const noShowCount = pastGroups.filter((h) => h.memberStatus === "no_show").length;
 </script>
 
 <svelte:head>
@@ -62,18 +81,58 @@
         {/if}
       </div>
     </div>
+
+    <!-- Stats -->
+    <div class="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-5">
+      <div class="text-center">
+        <div class="text-lg font-bold text-text">{data.history.length}</div>
+        <div class="text-xs text-text-dim">總參加</div>
+      </div>
+      <div class="text-center">
+        <div class="text-lg font-bold text-success">{totalGames}</div>
+        <div class="text-xs text-text-dim">已出席</div>
+      </div>
+      <div class="text-center">
+        <div class="text-lg font-bold text-danger">{noShowCount}</div>
+        <div class="text-xs text-text-dim">跳車</div>
+      </div>
+    </div>
   </div>
 
-  <!-- Group history -->
-  <h2 class="font-display mb-4 text-xl font-bold">參加紀錄</h2>
+  <!-- Active groups -->
+  {#if activeGroups.length > 0}
+    <h2 class="font-display mb-4 text-xl font-bold">進行中的團</h2>
+    <div class="mb-8 space-y-2">
+      {#each activeGroups as item}
+        <a
+          href="/groups/{item.groupId}"
+          class="flex items-center justify-between rounded-lg border border-gold/20 bg-gold/5 px-4 py-3 transition-colors hover:border-gold/40"
+        >
+          <div>
+            <span class="text-sm font-medium">{item.roomName ?? "待選密室"}</span>
+            {#if item.roomStudio}
+              <span class="text-xs text-text-dim"> — {item.roomStudio}</span>
+            {/if}
+            <div class="mt-0.5 text-xs text-text-dim">{formatDate(item.groupDatetime)}</div>
+          </div>
+          <span class="rounded-md bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold">
+            {groupStatusLabels[item.groupStatus]}
+          </span>
+        </a>
+      {/each}
+    </div>
+  {/if}
 
-  {#if data.history.length === 0}
+  <!-- Past groups -->
+  <h2 class="font-display mb-4 text-xl font-bold">歷史紀錄</h2>
+
+  {#if pastGroups.length === 0}
     <div class="rounded-xl border border-border bg-surface py-12 text-center text-text-dim">
-      還沒有參加過任何團
+      還沒有完成的紀錄
     </div>
   {:else}
     <div class="space-y-2">
-      {#each data.history as item}
+      {#each pastGroups as item}
         <a
           href="/groups/{item.groupId}"
           class="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3 transition-colors hover:border-gold/20"
