@@ -161,3 +161,30 @@ export const proposalVotes = pgTable("proposal_votes", {
 }, (table) => [
   uniqueIndex("proposal_votes_unique_idx").on(table.proposalId, table.userId),
 ]);
+
+// Match mode queue — users express interest, system auto-groups when threshold met
+export const matchStatusEnum = pgEnum("match_status", [
+  "waiting",
+  "matched",
+  "expired",
+]);
+
+export const matchRequests = pgTable("match_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  escapeRoomId: uuid("escape_room_id")
+    .notNull()
+    .references(() => escapeRooms.id),
+  timeRangeStart: timestamp("time_range_start", { withTimezone: true }).notNull(),
+  timeRangeEnd: timestamp("time_range_end", { withTimezone: true }).notNull(),
+  status: matchStatusEnum("status").notNull().default("waiting"),
+  matchedGroupId: uuid("matched_group_id").references(() => groups.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}, (table) => [
+  index("match_requests_status_idx").on(table.status),
+  index("match_requests_room_idx").on(table.escapeRoomId),
+]);
