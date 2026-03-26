@@ -5,16 +5,66 @@ import {
   groupMembers,
   escapeRooms,
 } from "@escape-group/db/schema";
-import { eq, and, sql, lte, gte } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
-const MIN_MATCH_SIZE = 4; // Minimum players to form a match
+export const MIN_MATCH_SIZE = 4;
+
+type TimeRange = {
+  timeRangeStart: Date;
+  timeRangeEnd: Date;
+};
+
+/**
+ * Find the largest group of requests with overlapping time windows.
+ * Pure function — no DB calls. Exported for testing.
+ */
+export function findBestOverlap<T extends TimeRange>(
+  requests: T[],
+  minSize: number,
+  maxSize: number
+): T[] {
+  let best: T[] = [];
+
+  for (const anchor of requests) {
+    const compatible = requests.filter(
+      (r) =>
+        r.timeRangeStart <= anchor.timeRangeEnd &&
+        r.timeRangeEnd >= anchor.timeRangeStart
+    );
+
+    if (compatible.length >= minSize && compatible.length > best.length) {
+      best = compatible.slice(0, maxSize);
+    }
+  }
+
+  return best.length >= minSize ? best : [];
+}
+
+/**
+ * Compute the common time window and midpoint event time.
+ */
+export function computeEventTime(group: TimeRange[]): {
+  commonStart: Date;
+  commonEnd: Date;
+  eventTime: Date;
+} {
+  const commonStart = new Date(
+    Math.max(...group.map((r) => r.timeRangeStart.getTime()))
+  );
+  const commonEnd = new Date(
+    Math.min(...group.map((r) => r.timeRangeEnd.getTime()))
+  );
+  const eventTime = new Date(
+    (commonStart.getTime() + commonEnd.getTime()) / 2
+  );
+  return { commonStart, commonEnd, eventTime };
+}
 
 /**
  * Try to match waiting requests for the same escape room with overlapping time ranges.
  * When enough people overlap, auto-create a group.
  */
 export async function tryMatch(escapeRoomId: string): Promise<string | null> {
-  // Get all waiting requests for this room
   const waiting = await db
     .select()
     .from(matchRequests)
@@ -28,7 +78,6 @@ export async function tryMatch(escapeRoomId: string): Promise<string | null> {
 
   if (waiting.length < MIN_MATCH_SIZE) return null;
 
-  // Get room info for max players
   const [room] = await db
     .select()
     .from(escapeRooms)
@@ -36,39 +85,11 @@ export async function tryMatch(escapeRoomId: string): Promise<string | null> {
 
   const maxSize = room?.maxPlayers ?? 8;
 
-  // Find the largest overlapping time window
-  // Simple greedy: for each pair of requests, find overlap, then count how many others fit
-  let bestGroup: typeof waiting = [];
+  const bestGroup = findBestOverlap(waiting, MIN_MATCH_SIZE, maxSize);
+  if (bestGroup.length === 0) return null;
 
-  for (let i = 0; i < waiting.length; i++) {
-    const anchor = waiting[i];
-    const compatible = waiting.filter((r) => {
-      // Check time overlap
-      return (
-        r.timeRangeStart <= anchor.timeRangeEnd &&
-        r.timeRangeEnd >= anchor.timeRangeStart
-      );
-    });
+  const { commonStart, commonEnd, eventTime } = computeEventTime(bestGroup);
 
-    if (compatible.length >= MIN_MATCH_SIZE && compatible.length > bestGroup.length) {
-      bestGroup = compatible.slice(0, maxSize); // Cap at max players
-    }
-  }
-
-  if (bestGroup.length < MIN_MATCH_SIZE) return null;
-
-  // Find the common time window
-  const commonStart = new Date(
-    Math.max(...bestGroup.map((r) => r.timeRangeStart.getTime()))
-  );
-  const commonEnd = new Date(
-    Math.min(...bestGroup.map((r) => r.timeRangeEnd.getTime()))
-  );
-
-  // Pick the midpoint as the event time
-  const eventTime = new Date((commonStart.getTime() + commonEnd.getTime()) / 2);
-
-  // Create the group (first requester becomes host)
   const hostId = bestGroup[0].userId;
   const [group] = await db
     .insert(groups)
@@ -85,7 +106,6 @@ export async function tryMatch(escapeRoomId: string): Promise<string | null> {
     })
     .returning();
 
-  // Add all matched users as members
   await db.insert(groupMembers).values(
     bestGroup.map((r) => ({
       groupId: group.id,
@@ -94,7 +114,6 @@ export async function tryMatch(escapeRoomId: string): Promise<string | null> {
     }))
   );
 
-  // Mark requests as matched
   for (const r of bestGroup) {
     await db
       .update(matchRequests)
