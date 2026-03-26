@@ -9,6 +9,7 @@
     "db:migrate": "pnpm --filter @escape-group/db migrate",
     "db:push": "pnpm --filter @escape-group/db push",
     "db:seed": "pnpm --filter @escape-group/db seed",
-    "test": "pnpm --filter @escape-group/web test"
+    "test": "pnpm --filter @escape-group/web test",
+    "check": "pnpm --filter @escape-group/web check"
   }
 }
