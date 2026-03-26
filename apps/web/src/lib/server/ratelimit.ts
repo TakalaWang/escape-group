@@ -5,14 +5,6 @@
 
 const store = new Map<string, { count: number; resetAt: number }>();
 
-// Clean up expired entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of store) {
-    if (entry.resetAt < now) store.delete(key);
-  }
-}, 60_000);
-
 export function rateLimit(
   key: string,
   limit: number = 30,
@@ -32,6 +24,11 @@ export function rateLimit(
   }
 
   return { allowed: true, remaining: limit - entry.count };
+}
+
+/** Reset the store (for testing) */
+export function _resetStore() {
+  store.clear();
 }
 
 /**
