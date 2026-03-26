@@ -1,12 +1,11 @@
-// See https://svelte.dev/docs/kit/types#app.d.ts
-// for information about these interfaces
+import type { users } from "@escape-group/db/schema";
+import type { InferSelectModel } from "drizzle-orm";
+
 declare global {
   namespace App {
-    // interface Error {}
-    // interface Locals {}
-    // interface PageData {}
-    // interface PageState {}
-    // interface Platform {}
+    interface Locals {
+      user: InferSelectModel<typeof users> | null;
+    }
   }
 }
 

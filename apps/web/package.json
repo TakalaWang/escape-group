@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "@escape-group/db": "workspace:*",
-    "drizzle-orm": "^0.45.1"
+    "arctic": "^3.7.0",
+    "drizzle-orm": "^0.45.1",
+    "oslo": "^1.2.1"
   }
 }
