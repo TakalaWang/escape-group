@@ -9,6 +9,13 @@ importers:
   .: {}
 
   apps/web:
+    dependencies:
+      '@escape-group/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      drizzle-orm:
+        specifier: ^0.45.1
+        version: 0.45.1(postgres@3.4.8)
     devDependencies:
       '@sveltejs/adapter-auto':
         specifier: ^7.0.1
