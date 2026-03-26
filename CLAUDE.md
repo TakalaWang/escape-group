@@ -15,21 +15,27 @@
 
 ```
 apps/web/          → SvelteKit app (frontend + API routes)
-packages/db/       → Drizzle schema and migrations
+packages/db/       → Drizzle schema, migrations, seed script
+packages/shared/   → Shared constants and TypeScript types
 ```
 
 ## Development
 
 ```bash
+# Start PostgreSQL (requires Docker)
+docker compose up -d
+
 # Install dependencies
 pnpm install
 
+# Push schema to database
+pnpm db:push
+
+# Seed demo data (optional)
+pnpm db:seed
+
 # Start dev server
 pnpm dev
-
-# Database
-pnpm db:generate   # Generate migrations
-pnpm db:push       # Push schema to DB
 ```
 
 ## Environment Variables

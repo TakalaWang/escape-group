@@ -7,6 +7,7 @@
     "build": "pnpm --filter @escape-group/web build",
     "db:generate": "pnpm --filter @escape-group/db generate",
     "db:migrate": "pnpm --filter @escape-group/db migrate",
-    "db:push": "pnpm --filter @escape-group/db push"
+    "db:push": "pnpm --filter @escape-group/db push",
+    "db:seed": "pnpm --filter @escape-group/db seed"
   }
 }
