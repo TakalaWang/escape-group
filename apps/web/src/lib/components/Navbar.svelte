@@ -14,7 +14,7 @@
   };
 
   let { user, notifications = { pendingApprovals: 0, matchedGroups: 0 } }: { user: User | null; notifications?: Notifications } = $props();
-  const totalNotifs = (notifications?.pendingApprovals ?? 0) + (notifications?.matchedGroups ?? 0);
+  let totalNotifs = $derived((notifications?.pendingApprovals ?? 0) + (notifications?.matchedGroups ?? 0));
   let menuOpen = $state(false);
 </script>
 

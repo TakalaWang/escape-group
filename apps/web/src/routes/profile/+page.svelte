@@ -1,6 +1,6 @@
 <script lang="ts">
   let { data } = $props();
-  const user = data.user!;
+  let user = $derived(data.user!);
 
   const memberStatusLabels: Record<string, string> = {
     pending: "待審核",
@@ -27,16 +27,16 @@
     });
   }
 
-  const activeGroups = data.history.filter(
+  let activeGroups = $derived(data.history.filter(
     (h) => h.groupStatus === "open" || h.groupStatus === "full" || h.groupStatus === "confirmed"
-  );
-  const pastGroups = data.history.filter(
+  ));
+  let pastGroups = $derived(data.history.filter(
     (h) => h.groupStatus === "completed" || h.groupStatus === "cancelled"
-  );
+  ));
 
   // Stats
-  const totalGames = pastGroups.filter((h) => h.memberStatus === "attended").length;
-  const noShowCount = pastGroups.filter((h) => h.memberStatus === "no_show").length;
+  let totalGames = $derived(pastGroups.filter((h) => h.memberStatus === "attended").length);
+  let noShowCount = $derived(pastGroups.filter((h) => h.memberStatus === "no_show").length);
 </script>
 
 <svelte:head>

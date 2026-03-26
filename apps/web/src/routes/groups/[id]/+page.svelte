@@ -1,15 +1,16 @@
 <script lang="ts">
   let { data } = $props();
 
-  const { group, members } = data;
-  const user = data.user;
-  const isHost = user?.id === group.hostId;
-  const isMember = members.some((m) => m.userId === user?.id);
-  const acceptedCount = members.filter((m) => m.status === "accepted" || m.status === "attended").length;
-  const pendingMembers = members.filter((m) => m.status === "pending");
-  const spotsLeft = group.maxMembers - acceptedCount;
-  const isCompleted = group.status === "completed";
-  const canConfirmAttendance = isHost && (group.status === "confirmed" || group.status === "full" || group.status === "open");
+  let group = $derived(data.group);
+  let members = $derived(data.members);
+  let user = $derived(data.user);
+  let isHost = $derived(user?.id === group.hostId);
+  let isMember = $derived(members.some((m) => m.userId === user?.id));
+  let acceptedCount = $derived(members.filter((m) => m.status === "accepted" || m.status === "attended").length);
+  let pendingMembers = $derived(members.filter((m) => m.status === "pending"));
+  let spotsLeft = $derived(group.maxMembers - acceptedCount);
+  let isCompleted = $derived(group.status === "completed");
+  let canConfirmAttendance = $derived(isHost && (group.status === "confirmed" || group.status === "full" || group.status === "open"));
 
   const modeLabels: Record<string, string> = {
     host: "團主制",
@@ -104,9 +105,11 @@
   }
 
   // Load proposals if gather mode
-  if (group.mode === "gather" && group.status !== "completed" && group.status !== "cancelled") {
-    loadProposals();
-  }
+  $effect(() => {
+    if (group.mode === "gather" && group.status !== "completed" && group.status !== "cancelled") {
+      loadProposals();
+    }
+  });
 
   // Initialize attendance map with current statuses
   function initAttendance() {
