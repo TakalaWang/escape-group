@@ -6,6 +6,8 @@ import {
   timestamp,
   uuid,
   pgEnum,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const groupModeEnum = pgEnum("group_mode", [
@@ -80,7 +82,11 @@ export const groups = pgTable("groups", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("groups_status_idx").on(table.status),
+  index("groups_host_id_idx").on(table.hostId),
+  index("groups_created_at_idx").on(table.createdAt),
+]);
 
 export const groupMembers = pgTable("group_members", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -94,7 +100,11 @@ export const groupMembers = pgTable("group_members", {
   joinedAt: timestamp("joined_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("group_members_group_id_idx").on(table.groupId),
+  index("group_members_user_id_idx").on(table.userId),
+  uniqueIndex("group_members_group_user_idx").on(table.groupId, table.userId),
+]);
 
 export const reports = pgTable("reports", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -111,4 +121,7 @@ export const reports = pgTable("reports", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("reports_reported_user_group_idx").on(table.reportedUserId, table.groupId),
+  uniqueIndex("reports_unique_idx").on(table.reporterId, table.reportedUserId, table.groupId),
+]);
