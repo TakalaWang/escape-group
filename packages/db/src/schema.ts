@@ -63,7 +63,9 @@ export const escapeRooms = pgTable("escape_rooms", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("escape_rooms_location_idx").on(table.location),
+]);
 
 export const groups = pgTable("groups", {
   id: uuid("id").primaryKey().defaultRandom(),
