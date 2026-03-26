@@ -6,7 +6,10 @@
   const isHost = user?.id === group.hostId;
   const isMember = members.some((m) => m.userId === user?.id);
   const acceptedCount = members.filter((m) => m.status === "accepted" || m.status === "attended").length;
+  const pendingMembers = members.filter((m) => m.status === "pending");
   const spotsLeft = group.maxMembers - acceptedCount;
+  const isCompleted = group.status === "completed";
+  const canConfirmAttendance = isHost && (group.status === "confirmed" || group.status === "full" || group.status === "open");
 
   const modeLabels: Record<string, string> = {
     host: "團主制",
@@ -43,6 +46,23 @@
   }
 
   let joining = $state(false);
+  let showAttendance = $state(false);
+  let attendanceMap = $state<Record<string, string>>({});
+  let submittingAttendance = $state(false);
+  let reportingUserId = $state<string | null>(null);
+  let reportReason = $state("");
+
+  // Initialize attendance map with current statuses
+  function initAttendance() {
+    const map: Record<string, string> = {};
+    for (const m of members) {
+      if (m.status === "accepted" && m.userId !== group.hostId) {
+        map[m.id] = "attended";
+      }
+    }
+    attendanceMap = map;
+    showAttendance = true;
+  }
 
   async function handleJoin() {
     joining = true;
@@ -54,6 +74,96 @@
       alert(err.message || "加入失敗");
     }
     joining = false;
+  }
+
+  async function handleLeave() {
+    if (!confirm("確定要退出此團？")) return;
+    const myMembership = members.find((m) => m.userId === user?.id);
+    if (!myMembership) return;
+
+    const res = await fetch(`/api/groups/${group.id}/members`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId: myMembership.id }),
+    });
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      const err = await res.json();
+      alert(err.message || "退出失敗");
+    }
+  }
+
+  async function handleApproveMember(memberId: string) {
+    const res = await fetch(`/api/groups/${group.id}/members`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId, status: "accepted" }),
+    });
+    if (res.ok) window.location.reload();
+  }
+
+  async function handleRejectMember(memberId: string) {
+    const res = await fetch(`/api/groups/${group.id}/members`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId }),
+    });
+    if (res.ok) window.location.reload();
+  }
+
+  async function handleCancelGroup() {
+    if (!confirm("確定要取消此團？此操作無法復原。")) return;
+    const res = await fetch(`/api/groups/${group.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "cancelled" }),
+    });
+    if (res.ok) window.location.reload();
+  }
+
+  async function submitAttendance() {
+    submittingAttendance = true;
+    const attendance = Object.entries(attendanceMap).map(([memberId, status]) => ({
+      memberId,
+      status,
+    }));
+
+    const res = await fetch(`/api/groups/${group.id}/attendance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ attendance }),
+    });
+
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      const err = await res.json();
+      alert(err.message || "提交失敗");
+    }
+    submittingAttendance = false;
+  }
+
+  async function submitReport() {
+    if (!reportingUserId) return;
+    const res = await fetch("/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reportedUserId: reportingUserId,
+        groupId: group.id,
+        reason: reportReason || null,
+      }),
+    });
+
+    if (res.ok) {
+      reportingUserId = null;
+      reportReason = "";
+      alert("檢舉已提交");
+    } else {
+      const err = await res.json();
+      alert(err.message || "檢舉失敗");
+    }
   }
 </script>
 
@@ -72,7 +182,8 @@
         {group.status === 'open' ? 'bg-success/10 text-success' :
          group.status === 'full' ? 'bg-warning/10 text-warning' :
          group.status === 'completed' ? 'bg-text-dim/10 text-text-dim' :
-         'bg-danger/10 text-danger'}">
+         group.status === 'cancelled' ? 'bg-danger/10 text-danger' :
+         'bg-gold/10 text-gold'}">
         {statusLabels[group.status]}
       </span>
     </div>
@@ -127,35 +238,166 @@
     </a>
   {/if}
 
-  <!-- Join button -->
-  {#if group.status === "open" && user && !isMember}
-    <button
-      onclick={handleJoin}
-      disabled={joining || (user.creditScore < group.minCredit)}
-      class="mb-8 w-full rounded-lg bg-gold py-3 font-semibold text-bg transition-all hover:bg-gold-dim hover:shadow-[0_0_30px_var(--color-gold-glow)] disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {#if user.creditScore < group.minCredit}
-        信用分數不足（需 {group.minCredit} 分）
-      {:else if joining}
-        加入中...
-      {:else}
-        我要參加
-      {/if}
-    </button>
-  {:else if !user}
-    <a
-      href="/auth/facebook"
-      class="mb-8 block w-full rounded-lg bg-gold py-3 text-center font-semibold text-bg transition-all hover:bg-gold-dim"
-    >
-      登入後報名
-    </a>
+  <!-- Action buttons -->
+  <div class="mb-8 flex flex-wrap gap-3">
+    {#if group.status === "open" && user && !isMember}
+      <button
+        onclick={handleJoin}
+        disabled={joining || (user.creditScore < group.minCredit)}
+        class="flex-1 rounded-lg bg-gold py-3 font-semibold text-bg transition-all hover:bg-gold-dim hover:shadow-[0_0_30px_var(--color-gold-glow)] disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {#if user.creditScore < group.minCredit}
+          信用分數不足（需 {group.minCredit} 分）
+        {:else if joining}
+          加入中...
+        {:else}
+          我要參加
+        {/if}
+      </button>
+    {:else if !user && group.status === "open"}
+      <a
+        href="/auth/facebook"
+        class="flex-1 block rounded-lg bg-gold py-3 text-center font-semibold text-bg transition-all hover:bg-gold-dim"
+      >
+        登入後報名
+      </a>
+    {/if}
+
+    {#if isMember && !isHost && group.status !== "completed" && group.status !== "cancelled"}
+      <button
+        onclick={handleLeave}
+        class="rounded-lg border border-border px-6 py-3 text-sm text-text-dim transition-colors hover:border-danger/30 hover:text-danger"
+      >
+        退出
+      </button>
+    {/if}
+  </div>
+
+  <!-- Host controls -->
+  {#if isHost && group.status !== "completed" && group.status !== "cancelled"}
+    <div class="mb-8 rounded-xl border border-gold/20 bg-gold/5 p-5">
+      <h3 class="font-display mb-3 text-sm font-bold text-gold">團主控制</h3>
+      <div class="flex flex-wrap gap-3">
+        {#if canConfirmAttendance}
+          <button
+            onclick={initAttendance}
+            class="rounded-lg bg-gold px-5 py-2 text-sm font-semibold text-bg transition-colors hover:bg-gold-dim"
+          >
+            確認出席
+          </button>
+        {/if}
+        <button
+          onclick={handleCancelGroup}
+          class="rounded-lg border border-danger/30 px-5 py-2 text-sm text-danger transition-colors hover:bg-danger/10"
+        >
+          取消此團
+        </button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Attendance confirmation modal -->
+  {#if showAttendance}
+    <div class="mb-8 rounded-xl border border-gold/30 bg-surface p-5">
+      <h3 class="font-display mb-4 text-lg font-bold">確認出席狀態</h3>
+      <div class="space-y-3">
+        {#each members.filter((m) => m.status === "accepted" && m.userId !== group.hostId) as member}
+          <div class="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+            <div class="flex items-center gap-3">
+              {#if member.avatarUrl}
+                <img src={member.avatarUrl} alt="" class="h-8 w-8 rounded-full object-cover" />
+              {:else}
+                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs text-text-dim">
+                  {member.displayName.charAt(0)}
+                </div>
+              {/if}
+              <span class="text-sm font-medium">{member.displayName}</span>
+            </div>
+            <div class="flex gap-2">
+              {#each [
+                { value: "attended", label: "出席", color: "success" },
+                { value: "no_show", label: "跳車", color: "danger" },
+                { value: "excused", label: "請假", color: "warning" },
+              ] as opt}
+                <button
+                  onclick={() => (attendanceMap[member.id] = opt.value)}
+                  class="rounded-md px-3 py-1 text-xs font-medium transition-colors
+                    {attendanceMap[member.id] === opt.value
+                      ? opt.color === 'success' ? 'bg-success/20 text-success' :
+                        opt.color === 'danger' ? 'bg-danger/20 text-danger' :
+                        'bg-warning/20 text-warning'
+                      : 'bg-surface text-text-dim hover:text-text border border-border'}"
+                >
+                  {opt.label}
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/each}
+      </div>
+      <div class="mt-4 flex gap-3">
+        <button
+          onclick={submitAttendance}
+          disabled={submittingAttendance}
+          class="rounded-lg bg-gold px-6 py-2 text-sm font-semibold text-bg transition-colors hover:bg-gold-dim disabled:opacity-50"
+        >
+          {submittingAttendance ? "提交中..." : "確認提交"}
+        </button>
+        <button
+          onclick={() => (showAttendance = false)}
+          class="rounded-lg border border-border px-6 py-2 text-sm text-text-dim hover:text-text"
+        >
+          取消
+        </button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Pending members for host approval -->
+  {#if isHost && pendingMembers.length > 0}
+    <div class="mb-8">
+      <h2 class="font-display mb-3 text-lg font-bold text-warning">待審核 ({pendingMembers.length})</h2>
+      <div class="space-y-2">
+        {#each pendingMembers as member}
+          <div class="flex items-center justify-between rounded-lg border border-warning/20 bg-warning/5 px-4 py-3">
+            <div class="flex items-center gap-3">
+              {#if member.avatarUrl}
+                <img src={member.avatarUrl} alt="" class="h-8 w-8 rounded-full object-cover" />
+              {:else}
+                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs text-text-dim">
+                  {member.displayName.charAt(0)}
+                </div>
+              {/if}
+              <div>
+                <span class="text-sm font-medium">{member.displayName}</span>
+                <span class="ml-2 rounded-full bg-gold/10 px-2 py-0.5 text-xs text-gold">{member.creditScore}</span>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button
+                onclick={() => handleApproveMember(member.id)}
+                class="rounded-md bg-success/20 px-3 py-1 text-xs font-medium text-success transition-colors hover:bg-success/30"
+              >
+                接受
+              </button>
+              <button
+                onclick={() => handleRejectMember(member.id)}
+                class="rounded-md bg-danger/20 px-3 py-1 text-xs font-medium text-danger transition-colors hover:bg-danger/30"
+              >
+                拒絕
+              </button>
+            </div>
+          </div>
+        {/each}
+      </div>
+    </div>
   {/if}
 
   <!-- Members -->
   <div>
     <h2 class="font-display mb-4 text-xl font-bold">成員 ({acceptedCount}/{group.maxMembers})</h2>
     <div class="space-y-2">
-      {#each members as member}
+      {#each members.filter((m) => m.status !== "pending") as member}
         <div class="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3">
           <div class="flex items-center gap-3">
             {#if member.avatarUrl}
@@ -180,9 +422,20 @@
             <span class="rounded-full bg-gold/10 px-2 py-0.5 text-xs text-gold">
               {member.creditScore}
             </span>
-            <span class="text-xs text-text-dim">
+            <span class="text-xs
+              {member.status === 'attended' ? 'text-success' :
+               member.status === 'no_show' ? 'text-danger' :
+               'text-text-dim'}">
               {memberStatusLabels[member.status]}
             </span>
+            {#if isCompleted && member.status === "no_show" && user && user.id !== member.userId && isMember}
+              <button
+                onclick={() => (reportingUserId = member.userId)}
+                class="rounded-md border border-danger/30 px-2 py-0.5 text-xs text-danger transition-colors hover:bg-danger/10"
+              >
+                檢舉
+              </button>
+            {/if}
           </div>
         </div>
       {/each}
@@ -196,4 +449,33 @@
       {/if}
     </div>
   </div>
+
+  <!-- Report modal -->
+  {#if reportingUserId}
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-sm">
+      <div class="mx-4 w-full max-w-md rounded-xl border border-border bg-surface p-6">
+        <h3 class="font-display mb-4 text-lg font-bold">檢舉跳車</h3>
+        <textarea
+          bind:value={reportReason}
+          placeholder="檢舉原因（選填）"
+          rows="3"
+          class="mb-4 w-full rounded-lg border border-border bg-bg px-4 py-2.5 text-sm text-text placeholder:text-text-dim/50 focus:border-gold focus:outline-none"
+        ></textarea>
+        <div class="flex gap-3">
+          <button
+            onclick={submitReport}
+            class="rounded-lg bg-danger px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-danger/80"
+          >
+            確認檢舉
+          </button>
+          <button
+            onclick={() => { reportingUserId = null; reportReason = ""; }}
+            class="rounded-lg border border-border px-5 py-2 text-sm text-text-dim hover:text-text"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
