@@ -1,8 +1,17 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import { goto } from "$app/navigation";
 
   let { form } = $props();
   let mode = $state("host");
+
+  function handleModeChange(newMode: string) {
+    if (newMode === "match") {
+      goto("/match");
+      return;
+    }
+    mode = newMode;
+  }
 </script>
 
 <svelte:head>
@@ -25,20 +34,22 @@
       <div class="grid grid-cols-3 gap-3">
         {#each [
           { value: "host", label: "團主制", desc: "指定密室和時間" },
-          { value: "match", label: "配對制", desc: "系統自動配對" },
+          { value: "match", label: "配對制", desc: "前往配對頁面" },
           { value: "gather", label: "湊人制", desc: "先找人再選" },
         ] as opt}
-          <label
+          <button
+            type="button"
+            onclick={() => handleModeChange(opt.value)}
             class="cursor-pointer rounded-xl border p-4 text-center transition-all {mode === opt.value
               ? 'border-gold bg-gold/5 shadow-[0_0_15px_var(--color-gold-glow)]'
               : 'border-border bg-surface hover:border-gold/20'}"
           >
-            <input type="radio" name="mode" value={opt.value} bind:group={mode} class="sr-only" />
             <div class="font-display text-sm font-bold">{opt.label}</div>
             <div class="mt-1 text-xs text-text-dim">{opt.desc}</div>
-          </label>
+          </button>
         {/each}
       </div>
+      <input type="hidden" name="mode" value={mode} />
     </fieldset>
 
     <!-- Escape room info (for host and match modes) -->
