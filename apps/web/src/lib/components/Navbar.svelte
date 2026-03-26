@@ -23,6 +23,9 @@
         瀏覽開團
       </a>
       {#if user}
+        <a href="/my-groups" class="text-sm font-medium text-text-dim transition-colors hover:text-gold">
+          我的團
+        </a>
         <a href="/groups/new" class="text-sm font-medium text-text-dim transition-colors hover:text-gold">
           我要開團
         </a>
@@ -66,6 +69,7 @@
       <div class="flex flex-col gap-3">
         <a href="/groups" class="text-sm text-text-dim" onclick={() => (menuOpen = false)}>瀏覽開團</a>
         {#if user}
+          <a href="/my-groups" class="text-sm text-text-dim" onclick={() => (menuOpen = false)}>我的團</a>
           <a href="/groups/new" class="text-sm text-text-dim" onclick={() => (menuOpen = false)}>我要開團</a>
           <a href="/profile" class="text-sm text-text-dim" onclick={() => (menuOpen = false)}>個人檔案</a>
         {:else}
