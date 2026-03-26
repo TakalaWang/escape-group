@@ -9,6 +9,7 @@ import {
   users,
 } from "@escape-group/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { sanitizeText, sanitizeUrl } from "$lib/server/validation";
 import type { RequestHandler } from "./$types";
 
 // GET /api/groups/:id/proposals — list proposals with vote counts
@@ -103,20 +104,20 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
   if (!group) error(404, "Group not found");
   if (group.mode !== "gather") error(400, "Proposals only for gather mode");
 
-  const { roomName, roomStudio, roomUrl, roomLocation, minPlayers, maxPlayers } =
-    await request.json();
-  if (!roomName) error(400, "Room name required");
+  const body = await request.json();
+  const cleanName = sanitizeText(body.roomName, 200);
+  if (!cleanName) error(400, "Room name required");
 
   // Create escape room
   const [room] = await db
     .insert(escapeRooms)
     .values({
-      name: roomName,
-      studio: roomStudio ?? null,
-      url: roomUrl ?? null,
-      location: roomLocation ?? null,
-      minPlayers: minPlayers ?? null,
-      maxPlayers: maxPlayers ?? null,
+      name: cleanName,
+      studio: sanitizeText(body.roomStudio, 200),
+      url: sanitizeUrl(body.roomUrl),
+      location: sanitizeText(body.roomLocation, 200),
+      minPlayers: body.minPlayers ?? null,
+      maxPlayers: body.maxPlayers ?? null,
       createdBy: locals.user.id,
     })
     .returning();

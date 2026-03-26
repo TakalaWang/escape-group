@@ -1,6 +1,7 @@
 import { redirect, fail } from "@sveltejs/kit";
 import { db } from "$lib/server/db";
 import { groups, escapeRooms, groupMembers } from "@escape-group/db/schema";
+import { sanitizeText, sanitizeUrl } from "$lib/server/validation";
 import type { PageServerLoad, Actions } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -36,14 +37,15 @@ export const actions: Actions = {
 
     // Create escape room if name provided
     let escapeRoomId: string | null = null;
-    if (roomName) {
+    const cleanName = sanitizeText(roomName, 200);
+    if (cleanName) {
       const [room] = await db
         .insert(escapeRooms)
         .values({
-          name: roomName,
-          studio: roomStudio || null,
-          url: roomUrl || null,
-          location: roomLocation || null,
+          name: cleanName,
+          studio: sanitizeText(roomStudio, 200),
+          url: sanitizeUrl(roomUrl),
+          location: sanitizeText(roomLocation, 200),
           minPlayers,
           maxPlayers,
           createdBy: locals.user.id,
