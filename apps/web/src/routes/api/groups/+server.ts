@@ -1,7 +1,7 @@
 import { json, error } from "@sveltejs/kit";
 import { db } from "$lib/server/db";
 import { groups, escapeRooms, users, groupMembers } from "@escape-group/db/schema";
-import { eq, and, gte, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import type { RequestHandler } from "./$types";
 
 // GET /api/groups — list open groups
@@ -11,11 +11,8 @@ export const GET: RequestHandler = async ({ url }) => {
 
   const conditions = [eq(groups.status, "open")];
   if (location) {
-    conditions.push(sql`${groups.id} IN (
-      SELECT ${groups.id} FROM ${groups}
-      JOIN ${escapeRooms} ON ${groups.escapeRoomId} = ${escapeRooms.id}
-      WHERE ${escapeRooms.location} = ${location}
-    )`);
+    // Safe: Drizzle's sql`` uses parameterized queries
+    conditions.push(eq(escapeRooms.location, location));
   }
   if (mode && ["host", "match", "gather"].includes(mode)) {
     conditions.push(eq(groups.mode, mode as "host" | "match" | "gather"));
