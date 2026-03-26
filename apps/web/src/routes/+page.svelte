@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { dev } from "$app/environment";
+
   let { data } = $props();
 </script>
 
@@ -97,4 +99,28 @@
       </div>
     </div>
   </section>
+
+  <!-- Dev login (only in development) -->
+  {#if dev && !data.user}
+    <section class="relative mx-auto max-w-5xl px-4 pb-12">
+      <div class="rounded-xl border border-dashed border-warning/30 bg-warning/5 p-4 text-center">
+        <p class="mb-2 text-xs font-medium text-warning">DEV MODE</p>
+        <div class="flex flex-wrap justify-center gap-2">
+          <a href="/auth/dev?user=demo_user_1" class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30">
+            登入：密室王 (100分)
+          </a>
+          <a href="/auth/dev?user=demo_user_2" class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30">
+            登入：逃脫達人 (92分)
+          </a>
+          <a href="/auth/dev?user=demo_user_3" class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30">
+            登入：解謎新手 (78分)
+          </a>
+          <a href="/auth/dev?user=demo_user_4" class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30">
+            登入：鴿子王 (35分)
+          </a>
+        </div>
+        <p class="mt-2 text-xs text-text-dim">需先執行 pnpm db:seed</p>
+      </div>
+    </section>
+  {/if}
 </div>
