@@ -14,7 +14,7 @@
     </div>
   {/if}
 
-  <Navbar user={data.user} />
+  <Navbar user={data.user} notifications={data.notifications} />
   <main class="flex-1">
     {@render children()}
   </main>

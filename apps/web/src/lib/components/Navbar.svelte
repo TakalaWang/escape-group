@@ -8,7 +8,13 @@
     isFlagged: boolean;
   };
 
-  let { user }: { user: User | null } = $props();
+  type Notifications = {
+    pendingApprovals: number;
+    matchedGroups: number;
+  };
+
+  let { user, notifications = { pendingApprovals: 0, matchedGroups: 0 } }: { user: User | null; notifications?: Notifications } = $props();
+  const totalNotifs = (notifications?.pendingApprovals ?? 0) + (notifications?.matchedGroups ?? 0);
   let menuOpen = $state(false);
 </script>
 
@@ -23,8 +29,13 @@
         瀏覽開團
       </a>
       {#if user}
-        <a href="/my-groups" class="text-sm font-medium text-text-dim transition-colors hover:text-gold">
+        <a href="/my-groups" class="relative text-sm font-medium text-text-dim transition-colors hover:text-gold">
           我的團
+          {#if totalNotifs > 0}
+            <span class="absolute -top-1.5 -right-3 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white">
+              {totalNotifs}
+            </span>
+          {/if}
         </a>
         <a href="/match" class="text-sm font-medium text-text-dim transition-colors hover:text-gold">
           配對
