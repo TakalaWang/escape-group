@@ -1,0 +1,12 @@
+{
+  "name": "escape-group",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @escape-group/web dev",
+    "build": "pnpm --filter @escape-group/web build",
+    "db:generate": "pnpm --filter @escape-group/db generate",
+    "db:migrate": "pnpm --filter @escape-group/db migrate",
+    "db:push": "pnpm --filter @escape-group/db push"
+  }
+}
