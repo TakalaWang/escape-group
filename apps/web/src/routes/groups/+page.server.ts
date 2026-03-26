@@ -1,6 +1,6 @@
 import { db } from "$lib/server/db";
 import { groups, escapeRooms, users, groupMembers } from "@escape-group/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, isNotNull } from "drizzle-orm";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -10,6 +10,9 @@ export const load: PageServerLoad = async ({ url }) => {
   const conditions = [eq(groups.status, "open")];
   if (mode && ["host", "match", "gather"].includes(mode)) {
     conditions.push(eq(groups.mode, mode as "host" | "match" | "gather"));
+  }
+  if (location) {
+    conditions.push(eq(escapeRooms.location, location));
   }
 
   const result = await db
@@ -60,6 +63,13 @@ export const load: PageServerLoad = async ({ url }) => {
 
   const countMap = new Map(memberCounts.map((m) => [m.groupId, m.count]));
 
+  // Fetch distinct locations for filter dropdown
+  const locations = await db
+    .selectDistinct({ location: escapeRooms.location })
+    .from(escapeRooms)
+    .where(isNotNull(escapeRooms.location))
+    .orderBy(escapeRooms.location);
+
   return {
     groups: result.map((g) => ({
       ...g,
@@ -69,6 +79,7 @@ export const load: PageServerLoad = async ({ url }) => {
       createdAt: g.createdAt.toISOString(),
       currentMembers: countMap.get(g.id) ?? 0,
     })),
+    locations: locations.map((l) => l.location!).filter(Boolean),
     filters: { location, mode },
   };
 };

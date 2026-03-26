@@ -1,5 +1,6 @@
 <script lang="ts">
   import GroupCard from "$lib/components/GroupCard.svelte";
+  import { goto } from "$app/navigation";
 
   let { data } = $props();
 
@@ -9,6 +10,16 @@
     { value: "match", label: "配對制" },
     { value: "gather", label: "湊人制" },
   ];
+
+  function buildUrl(params: { mode?: string; location?: string }) {
+    const p = new URLSearchParams();
+    const m = params.mode ?? data.filters.mode ?? "";
+    const l = params.location ?? data.filters.location ?? "";
+    if (m) p.set("mode", m);
+    if (l) p.set("location", l);
+    const qs = p.toString();
+    return `/groups${qs ? `?${qs}` : ""}`;
+  }
 </script>
 
 <svelte:head>
@@ -29,24 +40,47 @@
     </a>
   </div>
 
-  <!-- Filter tabs -->
-  <div class="mb-6 flex gap-2">
-    {#each modes as m}
-      <a
-        href="/groups{m.value ? `?mode=${m.value}` : ''}"
-        class="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors {data.filters.mode === m.value || (!data.filters.mode && m.value === '') ? 'bg-gold/10 text-gold' : 'text-text-dim hover:text-text'}"
+  <!-- Filters -->
+  <div class="mb-6 flex flex-wrap items-center gap-4">
+    <!-- Mode tabs -->
+    <div class="flex gap-2">
+      {#each modes as m}
+        <a
+          href={buildUrl({ mode: m.value })}
+          class="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors {data.filters.mode === m.value || (!data.filters.mode && m.value === '') ? 'bg-gold/10 text-gold' : 'text-text-dim hover:text-text'}"
+        >
+          {m.label}
+        </a>
+      {/each}
+    </div>
+
+    <!-- Location dropdown -->
+    {#if data.locations.length > 0}
+      <select
+        value={data.filters.location ?? ""}
+        onchange={(e) => goto(buildUrl({ location: e.currentTarget.value }))}
+        class="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-dim focus:border-gold focus:outline-none"
       >
-        {m.label}
-      </a>
-    {/each}
+        <option value="">所有地區</option>
+        {#each data.locations as loc}
+          <option value={loc}>{loc}</option>
+        {/each}
+      </select>
+    {/if}
   </div>
 
   {#if data.groups.length === 0}
     <div class="rounded-xl border border-border bg-surface py-20 text-center">
       <p class="text-lg text-text-dim">目前沒有開放中的團</p>
-      <a href="/groups/new" class="mt-4 inline-block text-sm font-medium text-gold hover:underline">
-        來開第一個團吧
-      </a>
+      {#if data.filters.mode || data.filters.location}
+        <a href="/groups" class="mt-2 inline-block text-sm text-gold hover:underline">
+          清除篩選條件
+        </a>
+      {:else}
+        <a href="/groups/new" class="mt-4 inline-block text-sm font-medium text-gold hover:underline">
+          來開第一個團吧
+        </a>
+      {/if}
     </div>
   {:else}
     <div class="grid gap-4 md:grid-cols-2">
