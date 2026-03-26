@@ -125,3 +125,37 @@ export const reports = pgTable("reports", {
   index("reports_reported_user_group_idx").on(table.reportedUserId, table.groupId),
   uniqueIndex("reports_unique_idx").on(table.reporterId, table.reportedUserId, table.groupId),
 ]);
+
+// Proposals for gather mode — members suggest rooms, others vote
+export const groupProposals = pgTable("group_proposals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  groupId: uuid("group_id")
+    .notNull()
+    .references(() => groups.id),
+  escapeRoomId: uuid("escape_room_id")
+    .notNull()
+    .references(() => escapeRooms.id),
+  proposedBy: uuid("proposed_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}, (table) => [
+  index("group_proposals_group_idx").on(table.groupId),
+]);
+
+export const proposalVotes = pgTable("proposal_votes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  proposalId: uuid("proposal_id")
+    .notNull()
+    .references(() => groupProposals.id),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}, (table) => [
+  uniqueIndex("proposal_votes_unique_idx").on(table.proposalId, table.userId),
+]);

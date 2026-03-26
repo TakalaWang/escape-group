@@ -52,6 +52,62 @@
   let reportingUserId = $state<string | null>(null);
   let reportReason = $state("");
 
+  // Gather mode proposals
+  type Proposal = {
+    id: string;
+    roomName: string;
+    roomStudio: string | null;
+    roomLocation: string | null;
+    roomUrl: string | null;
+    proposerName: string;
+    voteCount: number;
+    voters: string[];
+  };
+  let proposals = $state<Proposal[]>([]);
+  let showProposalForm = $state(false);
+  let proposalForm = $state({ roomName: "", roomStudio: "", roomUrl: "", roomLocation: "" });
+
+  async function loadProposals() {
+    const res = await fetch(`/api/groups/${group.id}/proposals`);
+    if (res.ok) proposals = await res.json();
+  }
+
+  async function submitProposal() {
+    const res = await fetch(`/api/groups/${group.id}/proposals`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(proposalForm),
+    });
+    if (res.ok) {
+      showProposalForm = false;
+      proposalForm = { roomName: "", roomStudio: "", roomUrl: "", roomLocation: "" };
+      await loadProposals();
+    } else {
+      const err = await res.json();
+      alert(err.message || "提案失敗");
+    }
+  }
+
+  async function toggleVote(proposalId: string) {
+    const res = await fetch(`/api/groups/${group.id}/proposals/${proposalId}/vote`, {
+      method: "POST",
+    });
+    if (res.ok) await loadProposals();
+  }
+
+  async function confirmProposal(proposalId: string) {
+    // Host picks the winning proposal — set the escape room on the group
+    const proposal = proposals.find((p) => p.id === proposalId);
+    if (!proposal) return;
+    // This requires a new API, but for now we just confirm the group
+    alert("此功能將在團主確認密室後自動設定。目前請手動更新。");
+  }
+
+  // Load proposals if gather mode
+  if (group.mode === "gather" && group.status !== "completed" && group.status !== "cancelled") {
+    loadProposals();
+  }
+
   // Initialize attendance map with current statuses
   function initAttendance() {
     const map: Record<string, string> = {};
@@ -236,6 +292,107 @@
       </svg>
       密室資訊連結
     </a>
+  {/if}
+
+  <!-- Gather mode proposals -->
+  {#if group.mode === "gather" && group.status !== "completed" && group.status !== "cancelled"}
+    <div class="mb-8">
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="font-display text-xl font-bold">密室提案投票</h2>
+        {#if isMember}
+          <button
+            onclick={() => (showProposalForm = !showProposalForm)}
+            class="rounded-lg border border-gold/30 px-4 py-1.5 text-sm font-medium text-gold transition-colors hover:bg-gold/10"
+          >
+            {showProposalForm ? "取消" : "+ 提案"}
+          </button>
+        {/if}
+      </div>
+
+      {#if showProposalForm}
+        <div class="mb-4 rounded-xl border border-gold/20 bg-gold/5 p-4">
+          <div class="space-y-3">
+            <input
+              bind:value={proposalForm.roomName}
+              placeholder="密室名稱 *"
+              class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm text-text placeholder:text-text-dim/50 focus:border-gold focus:outline-none"
+            />
+            <div class="grid grid-cols-2 gap-3">
+              <input
+                bind:value={proposalForm.roomStudio}
+                placeholder="工作室"
+                class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm text-text placeholder:text-text-dim/50 focus:border-gold focus:outline-none"
+              />
+              <input
+                bind:value={proposalForm.roomLocation}
+                placeholder="地區"
+                class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm text-text placeholder:text-text-dim/50 focus:border-gold focus:outline-none"
+              />
+            </div>
+            <input
+              bind:value={proposalForm.roomUrl}
+              placeholder="連結（選填）"
+              class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm text-text placeholder:text-text-dim/50 focus:border-gold focus:outline-none"
+            />
+            <button
+              onclick={submitProposal}
+              disabled={!proposalForm.roomName}
+              class="rounded-lg bg-gold px-5 py-2 text-sm font-semibold text-bg transition-colors hover:bg-gold-dim disabled:opacity-50"
+            >
+              送出提案
+            </button>
+          </div>
+        </div>
+      {/if}
+
+      {#if proposals.length === 0}
+        <div class="rounded-xl border border-dashed border-border py-8 text-center text-sm text-text-dim">
+          還沒有人提案，成為第一個吧！
+        </div>
+      {:else}
+        <div class="space-y-3">
+          {#each proposals.sort((a, b) => b.voteCount - a.voteCount) as proposal}
+            <div class="rounded-xl border border-border bg-surface p-4 transition-all {proposal.voters.includes(user?.id ?? '') ? 'border-gold/30 bg-gold/5' : ''}">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="font-medium">{proposal.roomName}</div>
+                  {#if proposal.roomStudio}
+                    <div class="text-xs text-text-dim">{proposal.roomStudio}</div>
+                  {/if}
+                  {#if proposal.roomLocation}
+                    <div class="mt-1 text-xs text-text-dim">{proposal.roomLocation}</div>
+                  {/if}
+                  <div class="mt-1 text-xs text-text-dim">提案者：{proposal.proposerName}</div>
+                </div>
+                <div class="flex items-center gap-3">
+                  {#if isMember}
+                    <button
+                      onclick={() => toggleVote(proposal.id)}
+                      class="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors
+                        {proposal.voters.includes(user?.id ?? '')
+                          ? 'bg-gold/20 text-gold'
+                          : 'border border-border text-text-dim hover:text-text'}"
+                    >
+                      <svg class="h-4 w-4" fill={proposal.voters.includes(user?.id ?? '') ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                      </svg>
+                      {proposal.voteCount}
+                    </button>
+                  {:else}
+                    <span class="text-sm text-text-dim">{proposal.voteCount} 票</span>
+                  {/if}
+                </div>
+              </div>
+              {#if proposal.roomUrl}
+                <a href={proposal.roomUrl} target="_blank" rel="noopener" class="mt-2 inline-block text-xs text-gold hover:underline">
+                  查看連結
+                </a>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
   {/if}
 
   <!-- Action buttons -->
