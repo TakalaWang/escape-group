@@ -63,23 +63,23 @@ packages/
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start dev server |
-| `pnpm build` | Build for production |
-| `pnpm test` | Run unit tests |
-| `pnpm db:push` | Push schema to database |
-| `pnpm db:generate` | Generate migrations |
-| `pnpm db:seed` | Seed demo data |
+| Command            | Description             |
+| ------------------ | ----------------------- |
+| `pnpm dev`         | Start dev server        |
+| `pnpm build`       | Build for production    |
+| `pnpm test`        | Run unit tests          |
+| `pnpm db:push`     | Push schema to database |
+| `pnpm db:generate` | Generate migrations     |
+| `pnpm db:seed`     | Seed demo data          |
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `FB_APP_ID` | Facebook App ID |
-| `FB_APP_SECRET` | Facebook App Secret |
-| `ORIGIN` | App origin URL |
+| Variable        | Description                  |
+| --------------- | ---------------------------- |
+| `DATABASE_URL`  | PostgreSQL connection string |
+| `FB_APP_ID`     | Facebook App ID              |
+| `FB_APP_SECRET` | Facebook App Secret          |
+| `ORIGIN`        | App origin URL               |
 
 ## Deployment
 

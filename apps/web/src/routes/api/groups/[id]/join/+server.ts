@@ -9,10 +9,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) error(401, "Not authenticated");
   if (!locals.user.phone) error(403, "Phone verification required");
 
-  const [group] = await db
-    .select()
-    .from(groups)
-    .where(eq(groups.id, params.id));
+  const [group] = await db.select().from(groups).where(eq(groups.id, params.id));
 
   if (!group) error(404, "Group not found");
   if (group.status !== "open") error(400, "Group is not open");
@@ -26,12 +23,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
   const [existing] = await db
     .select()
     .from(groupMembers)
-    .where(
-      and(
-        eq(groupMembers.groupId, params.id),
-        eq(groupMembers.userId, locals.user.id)
-      )
-    );
+    .where(and(eq(groupMembers.groupId, params.id), eq(groupMembers.userId, locals.user.id)));
 
   if (existing) error(400, "Already a member");
 
@@ -39,12 +31,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(groupMembers)
-    .where(
-      and(
-        eq(groupMembers.groupId, params.id),
-        eq(groupMembers.status, "accepted")
-      )
-    );
+    .where(and(eq(groupMembers.groupId, params.id), eq(groupMembers.status, "accepted")));
 
   if (count >= group.maxMembers) {
     // Auto-update status to full

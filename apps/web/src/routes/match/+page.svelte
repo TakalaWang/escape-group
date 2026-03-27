@@ -50,7 +50,14 @@
 
     if (res.ok) {
       const data = await res.json();
-      form = { roomName: "", roomStudio: "", roomUrl: "", roomLocation: "", timeRangeStart: "", timeRangeEnd: "" };
+      form = {
+        roomName: "",
+        roomStudio: "",
+        roomUrl: "",
+        roomLocation: "",
+        timeRangeStart: "",
+        timeRangeEnd: "",
+      };
       if (data.matchedGroupId) {
         window.location.href = `/groups/${data.matchedGroupId}`;
       } else {
@@ -171,7 +178,13 @@
   {:else}
     <div class="space-y-3">
       {#each requests as req}
-        <div class="rounded-xl border bg-surface p-4 {req.status === 'matched' ? 'border-success/30 bg-success/5' : req.status === 'expired' ? 'border-text-dim/20' : 'border-gold/20'}">
+        <div
+          class="rounded-xl border bg-surface p-4 {req.status === 'matched'
+            ? 'border-success/30 bg-success/5'
+            : req.status === 'expired'
+              ? 'border-text-dim/20'
+              : 'border-gold/20'}"
+        >
           <div class="flex items-start justify-between">
             <div>
               <div class="font-medium">{req.roomName}</div>
@@ -183,7 +196,13 @@
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-xs {req.status === 'matched' ? 'text-success' : req.status === 'expired' ? 'text-text-dim' : 'text-gold'}">
+              <span
+                class="text-xs {req.status === 'matched'
+                  ? 'text-success'
+                  : req.status === 'expired'
+                    ? 'text-text-dim'
+                    : 'text-gold'}"
+              >
                 {statusLabels[req.status]}
               </span>
               {#if req.status === "waiting"}

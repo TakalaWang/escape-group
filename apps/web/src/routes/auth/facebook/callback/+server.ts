@@ -44,10 +44,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
   }
 
   // Upsert user
-  const [existingUser] = await db
-    .select()
-    .from(users)
-    .where(eq(users.fbId, fbUser.id));
+  const [existingUser] = await db.select().from(users).where(eq(users.fbId, fbUser.id));
 
   let userId: string;
   if (existingUser) {

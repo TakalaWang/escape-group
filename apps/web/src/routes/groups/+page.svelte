@@ -47,7 +47,11 @@
       {#each modes as m}
         <a
           href={buildUrl({ mode: m.value })}
-          class="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors {data.filters.mode === m.value || (!data.filters.mode && m.value === '') ? 'bg-gold/10 text-gold' : 'text-text-dim hover:text-text'}"
+          class="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors {data.filters.mode ===
+            m.value ||
+          (!data.filters.mode && m.value === '')
+            ? 'bg-gold/10 text-gold'
+            : 'text-text-dim hover:text-text'}"
         >
           {m.label}
         </a>
@@ -77,7 +81,10 @@
           清除篩選條件
         </a>
       {:else}
-        <a href="/groups/new" class="mt-4 inline-block text-sm font-medium text-gold hover:underline">
+        <a
+          href="/groups/new"
+          class="mt-4 inline-block text-sm font-medium text-gold hover:underline"
+        >
           來開第一個團吧
         </a>
       {/if}

@@ -19,10 +19,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 
   // Bind phone to user
-  await db
-    .update(users)
-    .set({ phone: cleaned })
-    .where(eq(users.id, locals.user.id));
+  await db.update(users).set({ phone: cleaned }).where(eq(users.id, locals.user.id));
 
   return json({ success: true });
 };

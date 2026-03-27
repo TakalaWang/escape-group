@@ -33,10 +33,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
     .select()
     .from(proposalVotes)
     .where(
-      and(
-        eq(proposalVotes.proposalId, params.proposalId),
-        eq(proposalVotes.userId, locals.user.id)
-      )
+      and(eq(proposalVotes.proposalId, params.proposalId), eq(proposalVotes.userId, locals.user.id))
     );
 
   if (existingVote) {

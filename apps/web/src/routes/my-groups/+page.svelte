@@ -28,13 +28,17 @@
   <div class="mb-6 flex gap-2">
     <button
       onclick={() => (tab = "active")}
-      class="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors {tab === 'active' ? 'bg-gold/10 text-gold' : 'text-text-dim hover:text-text'}"
+      class="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors {tab === 'active'
+        ? 'bg-gold/10 text-gold'
+        : 'text-text-dim hover:text-text'}"
     >
       進行中 ({data.activeGroups.length})
     </button>
     <button
       onclick={() => (tab = "past")}
-      class="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors {tab === 'past' ? 'bg-gold/10 text-gold' : 'text-text-dim hover:text-text'}"
+      class="rounded-lg px-4 py-1.5 text-sm font-medium transition-colors {tab === 'past'
+        ? 'bg-gold/10 text-gold'
+        : 'text-text-dim hover:text-text'}"
     >
       歷史 ({data.pastGroups.length})
     </button>
@@ -53,7 +57,9 @@
         {#each data.activeGroups as group}
           <div class="relative">
             {#if group.isHost}
-              <div class="absolute -top-2 -right-2 z-10 rounded-full bg-gold px-2 py-0.5 text-xs font-bold text-bg">
+              <div
+                class="absolute -top-2 -right-2 z-10 rounded-full bg-gold px-2 py-0.5 text-xs font-bold text-bg"
+              >
                 團主
               </div>
             {/if}
@@ -62,17 +68,15 @@
         {/each}
       </div>
     {/if}
+  {:else if data.pastGroups.length === 0}
+    <div class="rounded-xl border border-border bg-surface py-20 text-center">
+      <p class="text-lg text-text-dim">沒有歷史紀錄</p>
+    </div>
   {:else}
-    {#if data.pastGroups.length === 0}
-      <div class="rounded-xl border border-border bg-surface py-20 text-center">
-        <p class="text-lg text-text-dim">沒有歷史紀錄</p>
-      </div>
-    {:else}
-      <div class="grid gap-4 md:grid-cols-2">
-        {#each data.pastGroups as group}
-          <GroupCard {group} />
-        {/each}
-      </div>
-    {/if}
+    <div class="grid gap-4 md:grid-cols-2">
+      {#each data.pastGroups as group}
+        <GroupCard {group} />
+      {/each}
+    </div>
   {/if}
 </div>

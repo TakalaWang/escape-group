@@ -58,10 +58,7 @@ export const GET: RequestHandler = async ({ params }) => {
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) error(401, "Not authenticated");
 
-  const [group] = await db
-    .select()
-    .from(groups)
-    .where(eq(groups.id, params.id));
+  const [group] = await db.select().from(groups).where(eq(groups.id, params.id));
 
   if (!group) error(404, "Group not found");
   if (group.hostId !== locals.user.id) error(403, "Only host can update");
@@ -69,7 +66,10 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   const body = await request.json();
   const updates: Record<string, unknown> = {};
 
-  if (body.status && ["open", "full", "confirmed", "completed", "cancelled"].includes(body.status)) {
+  if (
+    body.status &&
+    ["open", "full", "confirmed", "completed", "cancelled"].includes(body.status)
+  ) {
     updates.status = body.status;
   }
   if (body.datetime) updates.datetime = new Date(body.datetime);

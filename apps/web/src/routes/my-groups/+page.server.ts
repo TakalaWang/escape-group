@@ -52,12 +52,7 @@ export const load: PageServerLoad = async ({ locals }) => {
       count: sql<number>`count(*)::int`,
     })
     .from(groupMembers)
-    .where(
-      and(
-        inArray(groupMembers.groupId, groupIds),
-        eq(groupMembers.status, "accepted")
-      )
-    )
+    .where(and(inArray(groupMembers.groupId, groupIds), eq(groupMembers.status, "accepted")))
     .groupBy(groupMembers.groupId);
 
   const countMap = new Map(memberCounts.map((m) => [m.groupId, m.count]));
@@ -77,8 +72,6 @@ export const load: PageServerLoad = async ({ locals }) => {
     activeGroups: allGroups.filter(
       (g) => g.status === "open" || g.status === "full" || g.status === "confirmed"
     ),
-    pastGroups: allGroups.filter(
-      (g) => g.status === "completed" || g.status === "cancelled"
-    ),
+    pastGroups: allGroups.filter((g) => g.status === "completed" || g.status === "cancelled"),
   };
 };

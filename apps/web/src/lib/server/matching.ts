@@ -1,10 +1,5 @@
 import { db } from "./db.js";
-import {
-  matchRequests,
-  groups,
-  groupMembers,
-  escapeRooms,
-} from "@escape-group/db/schema";
+import { matchRequests, groups, groupMembers, escapeRooms } from "@escape-group/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export const MIN_MATCH_SIZE = 4;
@@ -27,9 +22,7 @@ export function findBestOverlap<T extends TimeRange>(
 
   for (const anchor of requests) {
     const compatible = requests.filter(
-      (r) =>
-        r.timeRangeStart <= anchor.timeRangeEnd &&
-        r.timeRangeEnd >= anchor.timeRangeStart
+      (r) => r.timeRangeStart <= anchor.timeRangeEnd && r.timeRangeEnd >= anchor.timeRangeStart
     );
 
     if (compatible.length >= minSize && compatible.length > best.length) {
@@ -48,15 +41,9 @@ export function computeEventTime(group: TimeRange[]): {
   commonEnd: Date;
   eventTime: Date;
 } {
-  const commonStart = new Date(
-    Math.max(...group.map((r) => r.timeRangeStart.getTime()))
-  );
-  const commonEnd = new Date(
-    Math.min(...group.map((r) => r.timeRangeEnd.getTime()))
-  );
-  const eventTime = new Date(
-    (commonStart.getTime() + commonEnd.getTime()) / 2
-  );
+  const commonStart = new Date(Math.max(...group.map((r) => r.timeRangeStart.getTime())));
+  const commonEnd = new Date(Math.min(...group.map((r) => r.timeRangeEnd.getTime())));
+  const eventTime = new Date((commonStart.getTime() + commonEnd.getTime()) / 2);
   return { commonStart, commonEnd, eventTime };
 }
 
@@ -68,20 +55,12 @@ export async function tryMatch(escapeRoomId: string): Promise<string | null> {
   const waiting = await db
     .select()
     .from(matchRequests)
-    .where(
-      and(
-        eq(matchRequests.escapeRoomId, escapeRoomId),
-        eq(matchRequests.status, "waiting")
-      )
-    )
+    .where(and(eq(matchRequests.escapeRoomId, escapeRoomId), eq(matchRequests.status, "waiting")))
     .orderBy(matchRequests.createdAt);
 
   if (waiting.length < MIN_MATCH_SIZE) return null;
 
-  const [room] = await db
-    .select()
-    .from(escapeRooms)
-    .where(eq(escapeRooms.id, escapeRoomId));
+  const [room] = await db.select().from(escapeRooms).where(eq(escapeRooms.id, escapeRoomId));
 
   const maxSize = room?.maxPlayers ?? 8;
 

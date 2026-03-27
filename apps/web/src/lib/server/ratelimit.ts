@@ -34,9 +34,6 @@ export function _resetStore() {
 /**
  * Get rate limit key from request — uses user ID if logged in, IP otherwise.
  */
-export function getRateLimitKey(
-  userId: string | null | undefined,
-  ip: string | undefined
-): string {
+export function getRateLimitKey(userId: string | null | undefined, ip: string | undefined): string {
   return userId ?? ip ?? "anonymous";
 }

@@ -32,15 +32,12 @@
     <fieldset>
       <legend class="mb-3 text-sm font-medium text-text-dim">開團模式</legend>
       <div class="grid grid-cols-3 gap-3">
-        {#each [
-          { value: "host", label: "團主制", desc: "指定密室和時間" },
-          { value: "match", label: "配對制", desc: "前往配對頁面" },
-          { value: "gather", label: "湊人制", desc: "先找人再選" },
-        ] as opt}
+        {#each [{ value: "host", label: "團主制", desc: "指定密室和時間" }, { value: "match", label: "配對制", desc: "前往配對頁面" }, { value: "gather", label: "湊人制", desc: "先找人再選" }] as opt}
           <button
             type="button"
             onclick={() => handleModeChange(opt.value)}
-            class="cursor-pointer rounded-xl border p-4 text-center transition-all {mode === opt.value
+            class="cursor-pointer rounded-xl border p-4 text-center transition-all {mode ===
+            opt.value
               ? 'border-gold bg-gold/5 shadow-[0_0_15px_var(--color-gold-glow)]'
               : 'border-border bg-surface hover:border-gold/20'}"
           >

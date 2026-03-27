@@ -47,19 +47,26 @@
 <div class="mx-auto max-w-md px-4 py-16">
   <div class="rounded-xl border border-border bg-surface p-8">
     <div class="mb-6 text-center">
-      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gold/10 text-gold">
+      <div
+        class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gold/10 text-gold"
+      >
         <svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+          />
         </svg>
       </div>
       <h1 class="font-display text-2xl font-bold">手機驗證</h1>
-      <p class="mt-2 text-sm text-text-dim">
-        綁定手機號碼以啟用開團與報名功能
-      </p>
+      <p class="mt-2 text-sm text-text-dim">綁定手機號碼以啟用開團與報名功能</p>
     </div>
 
     {#if errorMsg}
-      <div class="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
+      <div
+        class="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger"
+      >
         {errorMsg}
       </div>
     {/if}

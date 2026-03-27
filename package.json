@@ -10,6 +10,12 @@
     "db:push": "pnpm --filter @escape-group/db push",
     "db:seed": "pnpm --filter @escape-group/db seed",
     "test": "pnpm --filter @escape-group/web test",
-    "check": "pnpm --filter @escape-group/web check"
+    "check": "pnpm --filter @escape-group/web check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.5.1"
   }
 }

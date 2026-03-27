@@ -9,10 +9,7 @@ import type { RequestHandler } from "./$types";
 export const POST: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) error(401, "Not authenticated");
 
-  const [group] = await db
-    .select()
-    .from(groups)
-    .where(eq(groups.id, params.id));
+  const [group] = await db.select().from(groups).where(eq(groups.id, params.id));
 
   if (!group) error(404, "Group not found");
   if (group.hostId !== locals.user.id) error(403, "Only host can confirm attendance");
@@ -31,12 +28,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     const [member] = await db
       .update(groupMembers)
       .set({ status })
-      .where(
-        and(
-          eq(groupMembers.id, memberId),
-          eq(groupMembers.groupId, params.id)
-        )
-      )
+      .where(and(eq(groupMembers.id, memberId), eq(groupMembers.groupId, params.id)))
       .returning();
 
     if (!member) continue;
@@ -53,10 +45,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
   }
 
   // Mark group as completed
-  await db
-    .update(groups)
-    .set({ status: "completed" })
-    .where(eq(groups.id, params.id));
+  await db.update(groups).set({ status: "completed" }).where(eq(groups.id, params.id));
 
   return json({ results });
 };

@@ -13,10 +13,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
   const fbId = url.searchParams.get("user") ?? "demo_user_1";
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.fbId, fbId));
+  const [user] = await db.select().from(users).where(eq(users.fbId, fbId));
 
   if (!user) error(404, "Demo user not found. Run `pnpm db:seed` first.");
 

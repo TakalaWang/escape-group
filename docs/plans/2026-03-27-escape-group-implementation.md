@@ -13,6 +13,7 @@
 ### Task 1: Scaffold Monorepo
 
 **Files:**
+
 - Create: `pnpm-workspace.yaml`
 - Create: `package.json` (root)
 - Create: `.gitignore`
@@ -74,6 +75,7 @@ git commit -m "chore: scaffold monorepo root"
 ### Task 2: Scaffold SvelteKit App
 
 **Files:**
+
 - Create: `apps/web/package.json`
 - Create: `apps/web/svelte.config.js`
 - Create: `apps/web/vite.config.ts`
@@ -88,6 +90,7 @@ git commit -m "chore: scaffold monorepo root"
 **Step 1: Initialize SvelteKit project**
 
 Run:
+
 ```bash
 cd /Users/takala/code/escape-group
 mkdir -p apps/web
@@ -107,11 +110,13 @@ pnpm --filter @escape-group/web add -D @sveltejs/kit @sveltejs/vite-plugin-svelt
 **Step 3: Configure Tailwind**
 
 In `apps/web/app.css`:
+
 ```css
 @import "tailwindcss";
 ```
 
 In `apps/web/vite.config.ts`, add tailwind plugin:
+
 ```ts
 import tailwindcss from "@tailwindcss/vite";
 import { sveltekit } from "@sveltejs/kit/vite";
@@ -143,6 +148,7 @@ git commit -m "feat: scaffold SvelteKit app with Tailwind"
 ### Task 3: Setup Database Package with Drizzle
 
 **Files:**
+
 - Create: `packages/db/package.json`
 - Create: `packages/db/src/schema.ts`
 - Create: `packages/db/src/index.ts`
@@ -185,8 +191,20 @@ pnpm --filter @escape-group/db add -D drizzle-kit
 import { pgTable, text, integer, boolean, timestamp, uuid, pgEnum } from "drizzle-orm/pg-core";
 
 export const groupModeEnum = pgEnum("group_mode", ["host", "match", "gather"]);
-export const groupStatusEnum = pgEnum("group_status", ["open", "full", "confirmed", "completed", "cancelled"]);
-export const memberStatusEnum = pgEnum("member_status", ["pending", "accepted", "attended", "no_show", "excused"]);
+export const groupStatusEnum = pgEnum("group_status", [
+  "open",
+  "full",
+  "confirmed",
+  "completed",
+  "cancelled",
+]);
+export const memberStatusEnum = pgEnum("member_status", [
+  "pending",
+  "accepted",
+  "attended",
+  "no_show",
+  "excused",
+]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -201,7 +219,9 @@ export const users = pgTable("users", {
 
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
-  userId: uuid("user_id").notNull().references(() => users.id),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });
 
@@ -221,7 +241,9 @@ export const groups = pgTable("groups", {
   id: uuid("id").primaryKey().defaultRandom(),
   mode: groupModeEnum("mode").notNull(),
   escapeRoomId: uuid("escape_room_id").references(() => escapeRooms.id),
-  hostId: uuid("host_id").notNull().references(() => users.id),
+  hostId: uuid("host_id")
+    .notNull()
+    .references(() => users.id),
   datetime: timestamp("datetime", { withTimezone: true }),
   timeRangeStart: timestamp("time_range_start", { withTimezone: true }),
   timeRangeEnd: timestamp("time_range_end", { withTimezone: true }),
@@ -234,17 +256,27 @@ export const groups = pgTable("groups", {
 
 export const groupMembers = pgTable("group_members", {
   id: uuid("id").primaryKey().defaultRandom(),
-  groupId: uuid("group_id").notNull().references(() => groups.id),
-  userId: uuid("user_id").notNull().references(() => users.id),
+  groupId: uuid("group_id")
+    .notNull()
+    .references(() => groups.id),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
   status: memberStatusEnum("status").notNull().default("pending"),
   joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const reports = pgTable("reports", {
   id: uuid("id").primaryKey().defaultRandom(),
-  reporterId: uuid("reporter_id").notNull().references(() => users.id),
-  reportedUserId: uuid("reported_user_id").notNull().references(() => users.id),
-  groupId: uuid("group_id").notNull().references(() => groups.id),
+  reporterId: uuid("reporter_id")
+    .notNull()
+    .references(() => users.id),
+  reportedUserId: uuid("reported_user_id")
+    .notNull()
+    .references(() => users.id),
+  groupId: uuid("group_id")
+    .notNull()
+    .references(() => groups.id),
   reason: text("reason"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -303,6 +335,7 @@ git commit -m "feat: add database package with Drizzle schema"
 ### Task 4: Wire DB to SvelteKit
 
 **Files:**
+
 - Modify: `apps/web/package.json` (add db dependency)
 - Create: `apps/web/src/lib/server/db.ts`
 - Create: `apps/web/.env` (local, gitignored)
@@ -336,6 +369,7 @@ git commit -m "feat: wire database to SvelteKit app"
 ### Task 5: Auth — Facebook OAuth + Session
 
 **Files:**
+
 - Create: `apps/web/src/lib/server/auth.ts`
 - Create: `apps/web/src/routes/auth/facebook/+server.ts`
 - Create: `apps/web/src/routes/auth/facebook/callback/+server.ts`
@@ -426,7 +460,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 declare global {
   namespace App {
     interface Locals {
-      user: import("@escape-group/db/schema").InferSelectModel<typeof import("@escape-group/db/schema").users> | null;
+      user:
+        | import("@escape-group/db/schema").InferSelectModel<
+            typeof import("@escape-group/db/schema").users
+          >
+        | null;
     }
   }
 }
@@ -445,6 +483,7 @@ git commit -m "feat: add Facebook OAuth authentication"
 ### Task 6: Phone Verification API
 
 **Files:**
+
 - Create: `apps/web/src/routes/auth/phone/+server.ts`
 - Create: `apps/web/src/routes/auth/phone/verify/+server.ts`
 
@@ -467,6 +506,7 @@ git commit -m "feat: add phone verification API"
 ### Task 7: Group CRUD API
 
 **Files:**
+
 - Create: `apps/web/src/routes/api/groups/+server.ts` (GET list, POST create)
 - Create: `apps/web/src/routes/api/groups/[id]/+server.ts` (GET detail, PATCH update)
 - Create: `apps/web/src/routes/api/groups/[id]/join/+server.ts` (POST join)
@@ -495,6 +535,7 @@ git commit -m "feat: add group CRUD API"
 ### Task 8: Credit Score Logic
 
 **Files:**
+
 - Create: `apps/web/src/lib/server/credit.ts`
 - Create: `apps/web/src/routes/api/groups/[id]/attendance/+server.ts`
 - Create: `apps/web/src/routes/api/reports/+server.ts`
@@ -510,9 +551,12 @@ const FLAG_THRESHOLD = 40;
 
 export function calculateCreditChange(action: "attend" | "no_show" | "reported"): number {
   switch (action) {
-    case "attend": return CREDIT_ATTEND;
-    case "no_show": return CREDIT_NO_SHOW;
-    case "reported": return CREDIT_REPORTED;
+    case "attend":
+      return CREDIT_ATTEND;
+    case "no_show":
+      return CREDIT_NO_SHOW;
+    case "reported":
+      return CREDIT_REPORTED;
   }
 }
 ```
@@ -537,6 +581,7 @@ git commit -m "feat: add credit score and reporting system"
 ### Task 9: UI — Layout and Navigation
 
 **Files:**
+
 - Modify: `apps/web/src/routes/+layout.svelte`
 - Create: `apps/web/src/lib/components/Navbar.svelte`
 - Modify: `apps/web/src/routes/+page.svelte`
@@ -561,6 +606,7 @@ git commit -m "feat: add layout and navigation UI"
 ### Task 10: UI — Group List Page
 
 **Files:**
+
 - Create: `apps/web/src/routes/groups/+page.server.ts`
 - Create: `apps/web/src/routes/groups/+page.svelte`
 - Create: `apps/web/src/lib/components/GroupCard.svelte`
@@ -581,6 +627,7 @@ git commit -m "feat: add group list page"
 ### Task 11: UI — Create Group Page
 
 **Files:**
+
 - Create: `apps/web/src/routes/groups/new/+page.svelte`
 - Create: `apps/web/src/routes/groups/new/+page.server.ts`
 
@@ -600,6 +647,7 @@ git commit -m "feat: add create group page"
 ### Task 12: UI — Group Detail Page
 
 **Files:**
+
 - Create: `apps/web/src/routes/groups/[id]/+page.server.ts`
 - Create: `apps/web/src/routes/groups/[id]/+page.svelte`
 
@@ -619,6 +667,7 @@ git commit -m "feat: add group detail page"
 ### Task 13: UI — Profile Page
 
 **Files:**
+
 - Create: `apps/web/src/routes/profile/+page.server.ts`
 - Create: `apps/web/src/routes/profile/+page.svelte`
 
@@ -638,6 +687,7 @@ git commit -m "feat: add profile page"
 ### Task 14: Phone Verification UI
 
 **Files:**
+
 - Create: `apps/web/src/routes/verify-phone/+page.svelte`
 
 **Step 1: Create phone verification page**

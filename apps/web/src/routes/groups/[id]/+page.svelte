@@ -6,11 +6,15 @@
   let user = $derived(data.user);
   let isHost = $derived(user?.id === group.hostId);
   let isMember = $derived(members.some((m) => m.userId === user?.id));
-  let acceptedCount = $derived(members.filter((m) => m.status === "accepted" || m.status === "attended").length);
+  let acceptedCount = $derived(
+    members.filter((m) => m.status === "accepted" || m.status === "attended").length
+  );
   let pendingMembers = $derived(members.filter((m) => m.status === "pending"));
   let spotsLeft = $derived(group.maxMembers - acceptedCount);
   let isCompleted = $derived(group.status === "completed");
-  let canConfirmAttendance = $derived(isHost && (group.status === "confirmed" || group.status === "full" || group.status === "open"));
+  let canConfirmAttendance = $derived(
+    isHost && (group.status === "confirmed" || group.status === "full" || group.status === "open")
+  );
 
   const modeLabels: Record<string, string> = {
     host: "團主制",
@@ -237,12 +241,18 @@
       <span class="rounded-md bg-gold/10 px-2.5 py-1 text-xs font-semibold text-gold">
         {modeLabels[group.mode]}
       </span>
-      <span class="rounded-md px-2.5 py-1 text-xs font-semibold
-        {group.status === 'open' ? 'bg-success/10 text-success' :
-         group.status === 'full' ? 'bg-warning/10 text-warning' :
-         group.status === 'completed' ? 'bg-text-dim/10 text-text-dim' :
-         group.status === 'cancelled' ? 'bg-danger/10 text-danger' :
-         'bg-gold/10 text-gold'}">
+      <span
+        class="rounded-md px-2.5 py-1 text-xs font-semibold
+        {group.status === 'open'
+          ? 'bg-success/10 text-success'
+          : group.status === 'full'
+            ? 'bg-warning/10 text-warning'
+            : group.status === 'completed'
+              ? 'bg-text-dim/10 text-text-dim'
+              : group.status === 'cancelled'
+                ? 'bg-danger/10 text-danger'
+                : 'bg-gold/10 text-gold'}"
+      >
         {statusLabels[group.status]}
       </span>
     </div>
@@ -291,7 +301,12 @@
       class="mb-8 inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm text-text-dim transition-colors hover:border-gold/30 hover:text-gold"
     >
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+        />
       </svg>
       密室資訊連結
     </a>
@@ -349,13 +364,21 @@
       {/if}
 
       {#if proposals.length === 0}
-        <div class="rounded-xl border border-dashed border-border py-8 text-center text-sm text-text-dim">
+        <div
+          class="rounded-xl border border-dashed border-border py-8 text-center text-sm text-text-dim"
+        >
           還沒有人提案，成為第一個吧！
         </div>
       {:else}
         <div class="space-y-3">
           {#each proposals.sort((a, b) => b.voteCount - a.voteCount) as proposal}
-            <div class="rounded-xl border border-border bg-surface p-4 transition-all {proposal.voters.includes(user?.id ?? '') ? 'border-gold/30 bg-gold/5' : ''}">
+            <div
+              class="rounded-xl border border-border bg-surface p-4 transition-all {proposal.voters.includes(
+                user?.id ?? ''
+              )
+                ? 'border-gold/30 bg-gold/5'
+                : ''}"
+            >
               <div class="flex items-start justify-between">
                 <div>
                   <div class="font-medium">{proposal.roomName}</div>
@@ -373,11 +396,21 @@
                       onclick={() => toggleVote(proposal.id)}
                       class="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors
                         {proposal.voters.includes(user?.id ?? '')
-                          ? 'bg-gold/20 text-gold'
-                          : 'border border-border text-text-dim hover:text-text'}"
+                        ? 'bg-gold/20 text-gold'
+                        : 'border border-border text-text-dim hover:text-text'}"
                     >
-                      <svg class="h-4 w-4" fill={proposal.voters.includes(user?.id ?? '') ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                      <svg
+                        class="h-4 w-4"
+                        fill={proposal.voters.includes(user?.id ?? "") ? "currentColor" : "none"}
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M5 15l7-7 7 7"
+                        />
                       </svg>
                       {proposal.voteCount}
                     </button>
@@ -387,7 +420,12 @@
                 </div>
               </div>
               {#if proposal.roomUrl}
-                <a href={proposal.roomUrl} target="_blank" rel="noopener" class="mt-2 inline-block text-xs text-gold hover:underline">
+                <a
+                  href={proposal.roomUrl}
+                  target="_blank"
+                  rel="noopener"
+                  class="mt-2 inline-block text-xs text-gold hover:underline"
+                >
                   查看連結
                 </a>
               {/if}
@@ -403,7 +441,7 @@
     {#if group.status === "open" && user && !isMember}
       <button
         onclick={handleJoin}
-        disabled={joining || (user.creditScore < group.minCredit)}
+        disabled={joining || user.creditScore < group.minCredit}
         class="flex-1 rounded-lg bg-gold py-3 font-semibold text-bg transition-all hover:bg-gold-dim hover:shadow-[0_0_30px_var(--color-gold-glow)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {#if user.creditScore < group.minCredit}
@@ -467,26 +505,26 @@
               {#if member.avatarUrl}
                 <img src={member.avatarUrl} alt="" class="h-8 w-8 rounded-full object-cover" />
               {:else}
-                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs text-text-dim">
+                <div
+                  class="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs text-text-dim"
+                >
                   {member.displayName.charAt(0)}
                 </div>
               {/if}
               <span class="text-sm font-medium">{member.displayName}</span>
             </div>
             <div class="flex gap-2">
-              {#each [
-                { value: "attended", label: "出席", color: "success" },
-                { value: "no_show", label: "跳車", color: "danger" },
-                { value: "excused", label: "請假", color: "warning" },
-              ] as opt}
+              {#each [{ value: "attended", label: "出席", color: "success" }, { value: "no_show", label: "跳車", color: "danger" }, { value: "excused", label: "請假", color: "warning" }] as opt}
                 <button
                   onclick={() => (attendanceMap[member.id] = opt.value)}
                   class="rounded-md px-3 py-1 text-xs font-medium transition-colors
                     {attendanceMap[member.id] === opt.value
-                      ? opt.color === 'success' ? 'bg-success/20 text-success' :
-                        opt.color === 'danger' ? 'bg-danger/20 text-danger' :
-                        'bg-warning/20 text-warning'
-                      : 'bg-surface text-text-dim hover:text-text border border-border'}"
+                    ? opt.color === 'success'
+                      ? 'bg-success/20 text-success'
+                      : opt.color === 'danger'
+                        ? 'bg-danger/20 text-danger'
+                        : 'bg-warning/20 text-warning'
+                    : 'bg-surface text-text-dim hover:text-text border border-border'}"
                 >
                   {opt.label}
                 </button>
@@ -516,21 +554,29 @@
   <!-- Pending members for host approval -->
   {#if isHost && pendingMembers.length > 0}
     <div class="mb-8">
-      <h2 class="font-display mb-3 text-lg font-bold text-warning">待審核 ({pendingMembers.length})</h2>
+      <h2 class="font-display mb-3 text-lg font-bold text-warning">
+        待審核 ({pendingMembers.length})
+      </h2>
       <div class="space-y-2">
         {#each pendingMembers as member}
-          <div class="flex items-center justify-between rounded-lg border border-warning/20 bg-warning/5 px-4 py-3">
+          <div
+            class="flex items-center justify-between rounded-lg border border-warning/20 bg-warning/5 px-4 py-3"
+          >
             <div class="flex items-center gap-3">
               {#if member.avatarUrl}
                 <img src={member.avatarUrl} alt="" class="h-8 w-8 rounded-full object-cover" />
               {:else}
-                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs text-text-dim">
+                <div
+                  class="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs text-text-dim"
+                >
                   {member.displayName.charAt(0)}
                 </div>
               {/if}
               <div>
                 <span class="text-sm font-medium">{member.displayName}</span>
-                <span class="ml-2 rounded-full bg-gold/10 px-2 py-0.5 text-xs text-gold">{member.creditScore}</span>
+                <span class="ml-2 rounded-full bg-gold/10 px-2 py-0.5 text-xs text-gold"
+                  >{member.creditScore}</span
+                >
               </div>
             </div>
             <div class="flex gap-2">
@@ -558,12 +604,16 @@
     <h2 class="font-display mb-4 text-xl font-bold">成員 ({acceptedCount}/{group.maxMembers})</h2>
     <div class="space-y-2">
       {#each members.filter((m) => m.status !== "pending") as member}
-        <div class="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3">
+        <div
+          class="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3"
+        >
           <div class="flex items-center gap-3">
             {#if member.avatarUrl}
               <img src={member.avatarUrl} alt="" class="h-8 w-8 rounded-full object-cover" />
             {:else}
-              <div class="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs text-text-dim">
+              <div
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-border text-xs text-text-dim"
+              >
                 {member.displayName.charAt(0)}
               </div>
             {/if}
@@ -582,10 +632,14 @@
             <span class="rounded-full bg-gold/10 px-2 py-0.5 text-xs text-gold">
               {member.creditScore}
             </span>
-            <span class="text-xs
-              {member.status === 'attended' ? 'text-success' :
-               member.status === 'no_show' ? 'text-danger' :
-               'text-text-dim'}">
+            <span
+              class="text-xs
+              {member.status === 'attended'
+                ? 'text-success'
+                : member.status === 'no_show'
+                  ? 'text-danger'
+                  : 'text-text-dim'}"
+            >
               {memberStatusLabels[member.status]}
             </span>
             {#if isCompleted && member.status === "no_show" && user && user.id !== member.userId && isMember}
@@ -602,7 +656,9 @@
 
       {#if spotsLeft > 0 && group.status === "open"}
         {#each Array(spotsLeft) as _}
-          <div class="flex items-center justify-center rounded-lg border border-dashed border-border py-3 text-sm text-text-dim">
+          <div
+            class="flex items-center justify-center rounded-lg border border-dashed border-border py-3 text-sm text-text-dim"
+          >
             空位
           </div>
         {/each}
@@ -629,7 +685,10 @@
             確認檢舉
           </button>
           <button
-            onclick={() => { reportingUserId = null; reportReason = ""; }}
+            onclick={() => {
+              reportingUserId = null;
+              reportReason = "";
+            }}
             class="rounded-lg border border-border px-5 py-2 text-sm text-text-dim hover:text-text"
           >
             取消

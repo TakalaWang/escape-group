@@ -8,20 +8,29 @@
   <title>Escape Group — 密室逃脫揪團平台</title>
   <meta name="description" content="信用制度保障每一場密室體驗。輕鬆開團、安心揪人、告別跳車。" />
   <meta property="og:title" content="Escape Group — 密室逃脫揪團平台" />
-  <meta property="og:description" content="信用制度保障每一場密室體驗。輕鬆開團、安心揪人、告別跳車。" />
+  <meta
+    property="og:description"
+    content="信用制度保障每一場密室體驗。輕鬆開團、安心揪人、告別跳車。"
+  />
   <meta property="og:type" content="website" />
 </svelte:head>
 
 <div class="relative overflow-hidden">
   <!-- Hero background effects -->
   <div class="pointer-events-none absolute inset-0">
-    <div class="absolute left-1/2 top-0 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-gold/5 blur-[120px]"></div>
-    <div class="absolute bottom-0 left-0 h-[300px] w-[400px] rounded-full bg-gold/3 blur-[80px]"></div>
+    <div
+      class="absolute left-1/2 top-0 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-gold/5 blur-[120px]"
+    ></div>
+    <div
+      class="absolute bottom-0 left-0 h-[300px] w-[400px] rounded-full bg-gold/3 blur-[80px]"
+    ></div>
   </div>
 
   <!-- Hero -->
   <section class="relative mx-auto max-w-5xl px-4 pb-20 pt-24 text-center">
-    <div class="mb-4 inline-block rounded-full border border-gold/20 bg-gold/5 px-4 py-1 text-xs font-medium tracking-wider text-gold">
+    <div
+      class="mb-4 inline-block rounded-full border border-gold/20 bg-gold/5 px-4 py-1 text-xs font-medium tracking-wider text-gold"
+    >
       密室逃脫揪團平台
     </div>
 
@@ -63,9 +72,16 @@
   <section class="relative mx-auto max-w-5xl px-4 pb-24">
     <div class="grid gap-6 md:grid-cols-3">
       <div class="rounded-xl border border-border bg-surface p-6">
-        <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10 text-gold">
+        <div
+          class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10 text-gold"
+        >
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
           </svg>
         </div>
         <h3 class="font-display mb-2 text-lg font-bold">信用保障</h3>
@@ -75,9 +91,16 @@
       </div>
 
       <div class="rounded-xl border border-border bg-surface p-6">
-        <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10 text-gold">
+        <div
+          class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10 text-gold"
+        >
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            />
           </svg>
         </div>
         <h3 class="font-display mb-2 text-lg font-bold">多種開團模式</h3>
@@ -87,15 +110,20 @@
       </div>
 
       <div class="rounded-xl border border-border bg-surface p-6">
-        <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10 text-gold">
+        <div
+          class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-gold/10 text-gold"
+        >
           <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+            />
           </svg>
         </div>
         <h3 class="font-display mb-2 text-lg font-bold">實名驗證</h3>
-        <p class="text-sm text-text-dim">
-          Facebook + 手機雙重綁定，一人一帳號，杜絕分身小帳。
-        </p>
+        <p class="text-sm text-text-dim">Facebook + 手機雙重綁定，一人一帳號，杜絕分身小帳。</p>
       </div>
     </div>
   </section>
@@ -106,16 +134,28 @@
       <div class="rounded-xl border border-dashed border-warning/30 bg-warning/5 p-4 text-center">
         <p class="mb-2 text-xs font-medium text-warning">DEV MODE</p>
         <div class="flex flex-wrap justify-center gap-2">
-          <a href="/auth/dev?user=demo_user_1" class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30">
+          <a
+            href="/auth/dev?user=demo_user_1"
+            class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30"
+          >
             登入：密室王 (100分)
           </a>
-          <a href="/auth/dev?user=demo_user_2" class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30">
+          <a
+            href="/auth/dev?user=demo_user_2"
+            class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30"
+          >
             登入：逃脫達人 (92分)
           </a>
-          <a href="/auth/dev?user=demo_user_3" class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30">
+          <a
+            href="/auth/dev?user=demo_user_3"
+            class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30"
+          >
             登入：解謎新手 (78分)
           </a>
-          <a href="/auth/dev?user=demo_user_4" class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30">
+          <a
+            href="/auth/dev?user=demo_user_4"
+            class="rounded-md bg-warning/20 px-3 py-1 text-xs text-warning hover:bg-warning/30"
+          >
             登入：鴿子王 (35分)
           </a>
         </div>

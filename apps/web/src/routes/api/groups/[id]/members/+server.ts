@@ -8,10 +8,7 @@ import type { RequestHandler } from "./$types";
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) error(401, "Not authenticated");
 
-  const [group] = await db
-    .select()
-    .from(groups)
-    .where(eq(groups.id, params.id));
+  const [group] = await db.select().from(groups).where(eq(groups.id, params.id));
 
   if (!group) error(404, "Group not found");
   if (group.hostId !== locals.user.id) error(403, "Only host can manage members");
@@ -25,12 +22,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   const [updated] = await db
     .update(groupMembers)
     .set({ status })
-    .where(
-      and(
-        eq(groupMembers.id, memberId),
-        eq(groupMembers.groupId, params.id)
-      )
-    )
+    .where(and(eq(groupMembers.id, memberId), eq(groupMembers.groupId, params.id)))
     .returning();
 
   if (!updated) error(404, "Member not found");
@@ -45,10 +37,7 @@ export const DELETE: RequestHandler = async ({ params, request, locals }) => {
   const { memberId } = await request.json();
   if (!memberId) error(400, "memberId required");
 
-  const [group] = await db
-    .select()
-    .from(groups)
-    .where(eq(groups.id, params.id));
+  const [group] = await db.select().from(groups).where(eq(groups.id, params.id));
 
   if (!group) error(404, "Group not found");
 
@@ -56,12 +45,7 @@ export const DELETE: RequestHandler = async ({ params, request, locals }) => {
   const [membership] = await db
     .select()
     .from(groupMembers)
-    .where(
-      and(
-        eq(groupMembers.id, memberId),
-        eq(groupMembers.groupId, params.id)
-      )
-    );
+    .where(and(eq(groupMembers.id, memberId), eq(groupMembers.groupId, params.id)));
 
   if (!membership) error(404, "Member not found");
 
@@ -73,9 +57,7 @@ export const DELETE: RequestHandler = async ({ params, request, locals }) => {
   // Host cannot leave their own group
   if (isSelf && isGroupHost) error(400, "Host cannot leave. Cancel the group instead.");
 
-  await db
-    .delete(groupMembers)
-    .where(eq(groupMembers.id, memberId));
+  await db.delete(groupMembers).where(eq(groupMembers.id, memberId));
 
   // Reopen group if it was full
   if (group.status === "full") {

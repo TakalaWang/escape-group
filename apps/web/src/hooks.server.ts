@@ -38,10 +38,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     (method === "POST" || method === "PATCH" || method === "DELETE");
 
   if (isApiWrite) {
-    const key = getRateLimitKey(
-      event.locals.user?.id,
-      event.getClientAddress()
-    );
+    const key = getRateLimitKey(event.locals.user?.id, event.getClientAddress());
     const { allowed, remaining } = rateLimit(key, 30, 60_000);
     if (!allowed) {
       return json(

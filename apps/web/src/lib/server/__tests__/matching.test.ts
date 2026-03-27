@@ -41,9 +41,7 @@ describe("findBestOverlap", () => {
   });
 
   it("caps at maxSize", () => {
-    const requests = Array.from({ length: 10 }, (_, i) =>
-      makeRequest(10, 20, `r${i}`)
-    );
+    const requests = Array.from({ length: 10 }, (_, i) => makeRequest(10, 20, `r${i}`));
     const result = findBestOverlap(requests, 4, 6);
     expect(result).toHaveLength(6);
   });
@@ -79,11 +77,7 @@ describe("findBestOverlap", () => {
 
 describe("computeEventTime", () => {
   it("computes common window and midpoint", () => {
-    const group = [
-      makeRequest(10, 18),
-      makeRequest(12, 20),
-      makeRequest(14, 16),
-    ];
+    const group = [makeRequest(10, 18), makeRequest(12, 20), makeRequest(14, 16)];
     const { commonStart, commonEnd, eventTime } = computeEventTime(group);
 
     // Common window: max(10,12,14)=14 to min(18,20,16)=16

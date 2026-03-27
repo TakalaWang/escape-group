@@ -10,7 +10,10 @@
   <!-- Navigation loading bar -->
   {#if navigating.to}
     <div class="fixed top-0 left-0 z-[100] h-0.5 w-full">
-      <div class="h-full animate-pulse bg-gold" style="animation: loading-bar 1s ease-in-out infinite;"></div>
+      <div
+        class="h-full animate-pulse bg-gold"
+        style="animation: loading-bar 1s ease-in-out infinite;"
+      ></div>
     </div>
   {/if}
 
@@ -25,8 +28,14 @@
 
 <style>
   @keyframes loading-bar {
-    0% { width: 0; }
-    50% { width: 70%; }
-    100% { width: 100%; }
+    0% {
+      width: 0;
+    }
+    50% {
+      width: 70%;
+    }
+    100% {
+      width: 100%;
+    }
   }
 </style>

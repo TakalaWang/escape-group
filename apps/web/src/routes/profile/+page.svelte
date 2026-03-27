@@ -27,12 +27,14 @@
     });
   }
 
-  let activeGroups = $derived(data.history.filter(
-    (h) => h.groupStatus === "open" || h.groupStatus === "full" || h.groupStatus === "confirmed"
-  ));
-  let pastGroups = $derived(data.history.filter(
-    (h) => h.groupStatus === "completed" || h.groupStatus === "cancelled"
-  ));
+  let activeGroups = $derived(
+    data.history.filter(
+      (h) => h.groupStatus === "open" || h.groupStatus === "full" || h.groupStatus === "confirmed"
+    )
+  );
+  let pastGroups = $derived(
+    data.history.filter((h) => h.groupStatus === "completed" || h.groupStatus === "cancelled")
+  );
 
   // Stats
   let totalGames = $derived(pastGroups.filter((h) => h.memberStatus === "attended").length);
@@ -50,7 +52,9 @@
       {#if user.avatarUrl}
         <img src={user.avatarUrl} alt="" class="h-16 w-16 rounded-full object-cover" />
       {:else}
-        <div class="flex h-16 w-16 items-center justify-center rounded-full bg-border text-xl font-bold text-text-dim">
+        <div
+          class="flex h-16 w-16 items-center justify-center rounded-full bg-border text-xl font-bold text-text-dim"
+        >
           {user.displayName.charAt(0)}
         </div>
       {/if}
@@ -61,14 +65,17 @@
           {#if user.phone}
             <span class="flex items-center gap-1 text-success">
               <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
               手機已驗證
             </span>
           {:else}
-            <a href="/verify-phone" class="text-warning hover:underline">
-              尚未驗證手機
-            </a>
+            <a href="/verify-phone" class="text-warning hover:underline"> 尚未驗證手機 </a>
           {/if}
         </div>
       </div>
@@ -144,10 +151,14 @@
             {/if}
             <div class="mt-0.5 text-xs text-text-dim">{formatDate(item.groupDatetime)}</div>
           </div>
-          <span class="text-xs
-            {item.memberStatus === 'attended' ? 'text-success' :
-             item.memberStatus === 'no_show' ? 'text-danger' :
-             'text-text-dim'}">
+          <span
+            class="text-xs
+            {item.memberStatus === 'attended'
+              ? 'text-success'
+              : item.memberStatus === 'no_show'
+                ? 'text-danger'
+                : 'text-text-dim'}"
+          >
             {memberStatusLabels[item.memberStatus]}
           </span>
         </a>

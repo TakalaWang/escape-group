@@ -15,23 +15,13 @@ export const load: LayoutServerLoad = async ({ locals }) => {
     .select({ count: sql<number>`count(*)::int` })
     .from(groupMembers)
     .innerJoin(groups, eq(groupMembers.groupId, groups.id))
-    .where(
-      and(
-        eq(groups.hostId, userId),
-        eq(groupMembers.status, "pending")
-      )
-    );
+    .where(and(eq(groups.hostId, userId), eq(groupMembers.status, "pending")));
 
   // Count newly matched groups (match requests that got matched)
   const [matchedResult] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(matchRequests)
-    .where(
-      and(
-        eq(matchRequests.userId, userId),
-        eq(matchRequests.status, "matched")
-      )
-    );
+    .where(and(eq(matchRequests.userId, userId), eq(matchRequests.status, "matched")));
 
   return {
     user: {

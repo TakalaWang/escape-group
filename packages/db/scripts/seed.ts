@@ -2,7 +2,8 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "../src/schema.js";
 
-const DATABASE_URL = process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/escape_group";
+const DATABASE_URL =
+  process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/escape_group";
 
 async function seed() {
   const client = postgres(DATABASE_URL);

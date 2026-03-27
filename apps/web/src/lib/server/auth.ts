@@ -31,16 +31,10 @@ export async function createSession(userId: string): Promise<string> {
 export async function validateSession(token: string) {
   const hash = new Uint8Array(await sha256(new TextEncoder().encode(token)));
   const hashedToken = encodeHex(hash);
-  const [session] = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.id, hashedToken));
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, hashedToken));
   if (!session || session.expiresAt < new Date()) return null;
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.userId));
+  const [user] = await db.select().from(users).where(eq(users.id, session.userId));
   return user ?? null;
 }
 

@@ -81,7 +81,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   if (!locals.user.phone) error(403, "Phone verification required");
 
   const body = await request.json();
-  const { mode, escapeRoom, datetime, timeRangeStart, timeRangeEnd, maxMembers, minCredit, autoAccept } = body;
+  const {
+    mode,
+    escapeRoom,
+    datetime,
+    timeRangeStart,
+    timeRangeEnd,
+    maxMembers,
+    minCredit,
+    autoAccept,
+  } = body;
 
   if (!mode || !["host", "match", "gather"].includes(mode)) {
     error(400, "Invalid mode");

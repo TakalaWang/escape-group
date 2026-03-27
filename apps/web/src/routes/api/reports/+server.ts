@@ -20,12 +20,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const [reporterMembership] = await db
     .select()
     .from(groupMembers)
-    .where(
-      and(
-        eq(groupMembers.groupId, groupId),
-        eq(groupMembers.userId, locals.user.id)
-      )
-    );
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, locals.user.id)));
 
   if (!reporterMembership) error(403, "You were not in this group");
 
@@ -58,12 +53,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(reports)
-    .where(
-      and(
-        eq(reports.reportedUserId, reportedUserId),
-        eq(reports.groupId, groupId)
-      )
-    );
+    .where(and(eq(reports.reportedUserId, reportedUserId), eq(reports.groupId, groupId)));
 
   if (count >= REPORT_THRESHOLD) {
     await updateCreditScore(reportedUserId, "reported");
