@@ -5,7 +5,16 @@ import { eq, sql } from "drizzle-orm";
 type CreateGroupInput = {
   roomName: string;
   studio?: string;
-  location?: "taipei" | "new_taipei" | "taoyuan" | "hsinchu" | "taichung" | "tainan" | "kaohsiung" | "yilan" | "hualien";
+  location?:
+    | "taipei"
+    | "new_taipei"
+    | "taoyuan"
+    | "hsinchu"
+    | "taichung"
+    | "tainan"
+    | "kaohsiung"
+    | "yilan"
+    | "hualien";
   datetime?: string;
   maxMembers: number;
   prefilledMembers?: number;
