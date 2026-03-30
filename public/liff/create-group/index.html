@@ -171,7 +171,8 @@
             return;
           }
 
-          const res = await fetch("/api/groups", {
+          const apiBase = window.location.origin;
+          const res = await fetch(apiBase + "/api/groups", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -182,12 +183,16 @@
             throw new Error(data.error || "開團失敗");
           }
 
-          await liff.sendMessages([
-            {
-              type: "text",
-              text: "✅ 開團成功！已在大群發布公告。",
-            },
-          ]);
+          try {
+            await liff.sendMessages([
+              {
+                type: "text",
+                text: "✅ 開團成功！已在大群發布公告。",
+              },
+            ]);
+          } catch (_) {
+            // sendMessages may fail in some contexts, that's OK
+          }
 
           liff.closeWindow();
         } catch (err) {
