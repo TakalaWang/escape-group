@@ -31,34 +31,47 @@ app.post("/webhook", async (c) => {
 });
 
 app.post("/groups", async (c) => {
-  const body = await c.req.json();
-  const lineUserId = body.lineUserId as string;
-  if (!lineUserId) return c.json({ error: "Missing lineUserId" }, 400);
-
-  const lineGroupId = process.env.LINE_GROUP_ID!;
-  if (!(await isGroupMember(lineGroupId, lineUserId))) {
-    return c.json({ error: "Not a group member" }, 403);
-  }
-
-  const validation = validateCreateGroupInput(body);
-  if (!validation.ok) return c.json({ error: validation.error }, 400);
-
-  const user = await upsertUser(lineUserId);
-  const group = await createGroup(user.id, body);
-
   try {
-    const card = buildGroupCard({
-      ...group,
-      hostName: user.displayName,
-      currentMembers: group.prefilledMembers,
-    });
-    const client = getLineClient();
-    await client.pushMessage({ to: lineGroupId, messages: [card] });
-  } catch (err) {
-    console.error("Failed to push announcement:", err);
-  }
+    const body = await c.req.json();
+    const lineUserId = body.lineUserId as string;
+    if (!lineUserId) return c.json({ error: "Missing lineUserId" }, 400);
 
-  return c.json({ id: group.id, status: "created" }, 201);
+    const lineGroupId = process.env.LINE_GROUP_ID;
+    if (lineGroupId) {
+      try {
+        if (!(await isGroupMember(lineGroupId, lineUserId))) {
+          return c.json({ error: "Not a group member" }, 403);
+        }
+      } catch (err) {
+        console.error("Access check failed, skipping:", err);
+      }
+    }
+
+    const validation = validateCreateGroupInput(body);
+    if (!validation.ok) return c.json({ error: validation.error }, 400);
+
+    const user = await upsertUser(lineUserId);
+    const group = await createGroup(user.id, body);
+
+    if (lineGroupId) {
+      try {
+        const card = buildGroupCard({
+          ...group,
+          hostName: user.displayName,
+          currentMembers: group.prefilledMembers,
+        });
+        const client = getLineClient();
+        await client.pushMessage({ to: lineGroupId, messages: [card] });
+      } catch (err) {
+        console.error("Failed to push announcement:", err);
+      }
+    }
+
+    return c.json({ id: group.id, status: "created" }, 201);
+  } catch (err) {
+    console.error("Create group error:", err);
+    return c.json({ error: "Internal server error" }, 500);
+  }
 });
 
 app.get("/groups", async (c) => {
