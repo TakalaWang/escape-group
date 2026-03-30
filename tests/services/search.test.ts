@@ -11,8 +11,8 @@ describe("buildSearchQuery", () => {
   });
 
   it("parses location filter", () => {
-    const query = buildSearchQuery({ location: "north" });
-    expect(query.location).toBe("north");
+    const query = buildSearchQuery({ location: "taipei" });
+    expect(query.location).toBe("taipei");
   });
 
   it("parses date range", () => {

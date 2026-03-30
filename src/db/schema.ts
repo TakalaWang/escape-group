@@ -1,6 +1,16 @@
 import { pgTable, text, integer, timestamp, uuid, pgEnum, uniqueIndex } from "drizzle-orm/pg-core";
 
-export const locationEnum = pgEnum("location", ["north", "central", "south", "east"]);
+export const locationEnum = pgEnum("location", [
+  "taipei",
+  "new_taipei",
+  "taoyuan",
+  "hsinchu",
+  "taichung",
+  "tainan",
+  "kaohsiung",
+  "yilan",
+  "hualien",
+]);
 
 export const groupStatusEnum = pgEnum("group_status", ["open", "full", "completed", "cancelled"]);
 

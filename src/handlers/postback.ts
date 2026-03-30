@@ -31,8 +31,8 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       };
 
       if (!result.ok) {
-        await client.replyMessage({
-          replyToken: event.replyToken,
+        await client.pushMessage({
+          to: userId,
           messages: [{ type: "text", text: messages[result.reason] }],
         });
         return;
@@ -42,8 +42,8 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       const memberCount = await getGroupMemberCount(groupId);
       const current = (group?.prefilledMembers ?? 1) + memberCount;
 
-      await client.replyMessage({
-        replyToken: event.replyToken,
+      await client.pushMessage({
+        to: userId,
         messages: [
           {
             type: "text",

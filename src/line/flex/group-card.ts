@@ -1,10 +1,15 @@
 import type { messagingApi } from "@line/bot-sdk";
 
 const LOCATION_LABELS: Record<string, string> = {
-  north: "台北",
-  central: "台中",
-  south: "高雄",
-  east: "花東",
+  taipei: "台北",
+  new_taipei: "新北",
+  taoyuan: "桃園",
+  hsinchu: "新竹",
+  taichung: "台中",
+  tainan: "台南",
+  kaohsiung: "高雄",
+  yilan: "宜蘭",
+  hualien: "花蓮",
 };
 
 type GroupCardInput = {

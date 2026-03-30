@@ -1,119 +1,152 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-TW">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>開團</title>
-    <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-        background: #f5f5f5;
-        padding: 16px;
-      }
-      .form-group {
-        margin-bottom: 16px;
-      }
-      label {
-        display: block;
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 4px;
-        color: #333;
-      }
-      input,
-      select {
-        width: 100%;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 16px;
-      }
-      input:focus,
-      select:focus {
-        outline: none;
-        border-color: #06c755;
-      }
-      .required::after {
-        content: " *";
-        color: red;
-      }
-      .hint {
-        font-size: 12px;
-        color: #888;
-        margin-top: 4px;
-      }
-      button {
-        width: 100%;
-        padding: 14px;
-        background: #06c755;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        margin-top: 8px;
-      }
-      button:disabled {
-        background: #ccc;
-      }
-      .error {
-        color: red;
-        font-size: 14px;
-        margin-top: 8px;
-        display: none;
-      }
-      .row {
-        display: flex;
-        gap: 12px;
-      }
-      .row .form-group {
-        flex: 1;
-      }
-    </style>
-  </head>
-  <body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>開團</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+      background: #f0f2f5;
+      padding: 20px 16px;
+      color: #333;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 20px;
+      color: #06C755;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #555;
+    }
+    .required::after {
+      content: " *";
+      color: #e53e3e;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      background: #fafafa;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #06C755;
+      background: white;
+    }
+    .hint {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .divider {
+      height: 1px;
+      background: #eee;
+      margin: 18px 0;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #06C755;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background 0.2s;
+    }
+    button:active { background: #05a647; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .error {
+      color: #e53e3e;
+      font-size: 13px;
+      margin-top: 10px;
+      display: none;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔑 開團</h1>
+  <div class="card">
     <form id="form">
       <div class="form-group">
         <label class="required">密室名稱</label>
-        <input type="text" id="roomName" placeholder="例：笑笑羊牧場" required />
+        <input type="text" id="roomName" placeholder="例：笑笑羊牧場" required>
       </div>
 
       <div class="form-group">
         <label>工作室</label>
-        <input type="text" id="studio" placeholder="例：密室逃脫工作室" />
+        <input type="text" id="studio" placeholder="例：密室逃脫工作室">
       </div>
 
       <div class="form-group">
         <label>地區</label>
         <select id="location">
           <option value="">不指定</option>
-          <option value="north">北部</option>
-          <option value="central">中部</option>
-          <option value="south">南部</option>
-          <option value="east">東部</option>
+          <optgroup label="北部">
+            <option value="taipei">台北</option>
+            <option value="new_taipei">新北</option>
+            <option value="taoyuan">桃園</option>
+            <option value="hsinchu">新竹</option>
+          </optgroup>
+          <optgroup label="中部">
+            <option value="taichung">台中</option>
+          </optgroup>
+          <optgroup label="南部">
+            <option value="tainan">台南</option>
+            <option value="kaohsiung">高雄</option>
+          </optgroup>
+          <optgroup label="東部">
+            <option value="yilan">宜蘭</option>
+            <option value="hualien">花蓮</option>
+          </optgroup>
         </select>
       </div>
 
       <div class="form-group">
         <label>活動時間</label>
-        <input type="datetime-local" id="datetime" />
+        <input type="datetime-local" id="datetime">
         <div class="hint">可之後再決定</div>
       </div>
+
+      <div class="divider"></div>
 
       <div class="row">
         <div class="form-group">
           <label class="required">人數上限</label>
-          <input type="number" id="maxMembers" min="2" max="20" value="6" />
+          <input type="number" id="maxMembers" min="2" max="20" value="6">
         </div>
         <div class="form-group">
           <label>已有人數</label>
-          <input type="number" id="prefilledMembers" min="1" max="19" value="1" />
+          <input type="number" id="prefilledMembers" min="1" max="19" value="1">
           <div class="hint">含你自己</div>
         </div>
       </div>
@@ -121,87 +154,89 @@
       <div class="error" id="error"></div>
       <button type="submit" id="submitBtn">開團</button>
     </form>
+  </div>
 
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script>
-      const LIFF_ID = "2009652339-gCUXwKhA";
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    const LIFF_ID = "2009652339-gCUXwKhA";
 
-      async function init() {
-        try {
-          await liff.init({ liffId: LIFF_ID });
-          if (!liff.isLoggedIn()) {
-            liff.login();
-            return;
-          }
-        } catch (e) {
-          showError("LIFF 初始化失敗：" + e.message);
+    async function init() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
         }
+      } catch (e) {
+        showError("LIFF 初始化失敗：" + e.message);
       }
+    }
 
-      function showError(msg) {
-        const el = document.getElementById("error");
-        el.textContent = msg;
-        el.style.display = "block";
-      }
+    function showError(msg) {
+      const el = document.getElementById("error");
+      el.textContent = msg;
+      el.style.display = "block";
+    }
 
-      document.getElementById("form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById("submitBtn");
-        btn.disabled = true;
-        btn.textContent = "送出中...";
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.textContent = "送出中...";
+      document.getElementById("error").style.display = "none";
 
-        try {
-          const profile = await liff.getProfile();
-          const datetime = document.getElementById("datetime").value;
+      try {
+        const profile = await liff.getProfile();
+        const datetime = document.getElementById("datetime").value;
 
-          const payload = {
-            lineUserId: profile.userId,
-            roomName: document.getElementById("roomName").value.trim(),
-            studio: document.getElementById("studio").value.trim() || undefined,
-            location: document.getElementById("location").value || undefined,
-            datetime: datetime ? new Date(datetime).toISOString() : undefined,
-            maxMembers: parseInt(document.getElementById("maxMembers").value),
-            prefilledMembers: parseInt(document.getElementById("prefilledMembers").value),
-          };
+        const payload = {
+          lineUserId: profile.userId,
+          roomName: document.getElementById("roomName").value.trim(),
+          studio: document.getElementById("studio").value.trim() || undefined,
+          location: document.getElementById("location").value || undefined,
+          datetime: datetime ? new Date(datetime).toISOString() : undefined,
+          maxMembers: parseInt(document.getElementById("maxMembers").value),
+          prefilledMembers: parseInt(document.getElementById("prefilledMembers").value),
+        };
 
-          if (!payload.roomName) {
-            showError("請填寫密室名稱");
-            btn.disabled = false;
-            btn.textContent = "開團";
-            return;
-          }
-
-          const res = await fetch("https://escape-group.vercel.app/api/groups", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-
-          if (!res.ok) {
-            const data = await res.json();
-            throw new Error(data.error || "開團失敗");
-          }
-
-          try {
-            await liff.sendMessages([
-              {
-                type: "text",
-                text: "✅ 開團成功！已在大群發布公告。",
-              },
-            ]);
-          } catch (_) {
-            // sendMessages may fail in some contexts, that's OK
-          }
-
-          liff.closeWindow();
-        } catch (err) {
-          showError(err.message);
+        if (!payload.roomName) {
+          showError("請填寫密室名稱");
           btn.disabled = false;
           btn.textContent = "開團";
+          return;
         }
-      });
 
-      init();
-    </script>
-  </body>
+        const res = await fetch("https://escape-group.vercel.app/api/groups", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "開團失敗");
+        }
+
+        try {
+          await liff.sendMessages([
+            {
+              type: "text",
+              text: "✅ 開團成功！已在大群發布公告。",
+            },
+          ]);
+        } catch (_) {
+          // sendMessages may fail in some contexts
+        }
+
+        liff.closeWindow();
+      } catch (err) {
+        showError(err.message);
+        btn.disabled = false;
+        btn.textContent = "開團";
+      }
+    });
+
+    init();
+  </script>
+</body>
 </html>
