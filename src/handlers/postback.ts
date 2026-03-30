@@ -3,6 +3,8 @@ import { getLineClient } from "../line/client.js";
 import { upsertUser } from "../services/user.js";
 import { joinGroup } from "../services/member.js";
 import { getGroupById, getGroupMemberCount } from "../services/group.js";
+import { searchGroups } from "../services/search.js";
+import { buildSummaryCard } from "../line/flex/summary.js";
 
 export async function handlePostback(event: PostbackEvent): Promise<void> {
   const data = new URLSearchParams(event.postback.data);
@@ -47,6 +49,22 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
             text: `✅ 成功加入「${group?.roomName}」！目前 ${current}/${group?.maxMembers} 人。`,
           },
         ],
+      });
+      break;
+    }
+    case "search": {
+      const results = await searchGroups({});
+      const summaryGroups = results.map((r) => ({
+        id: r.id,
+        roomName: r.roomName,
+        datetime: r.datetime,
+        maxMembers: r.maxMembers,
+        currentMembers: r.currentMembers,
+      }));
+      const card = buildSummaryCard(summaryGroups);
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [card],
       });
       break;
     }
