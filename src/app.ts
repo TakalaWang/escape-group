@@ -25,7 +25,7 @@ app.post("/webhook", async (c) => {
   }
 
   const parsed = JSON.parse(body);
-  handleWebhookEvents(parsed.events).catch(console.error);
+  await handleWebhookEvents(parsed.events);
 
   return c.json({ status: "ok" });
 });
