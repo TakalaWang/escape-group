@@ -4,7 +4,7 @@ import { eq, and, sql } from "drizzle-orm";
 
 type JoinResult =
   | { ok: true }
-  | { ok: false; reason: "not_found" | "full" | "already_joined" | "cancelled" };
+  | { ok: false; reason: "not_found" | "full" | "already_joined" | "cancelled" | "is_host" };
 
 export async function joinGroup(groupId: string, userId: string): Promise<JoinResult> {
   const group = await db.select().from(groups).where(eq(groups.id, groupId)).limit(1);
@@ -12,6 +12,7 @@ export async function joinGroup(groupId: string, userId: string): Promise<JoinRe
 
   const g = group[0];
   if (g.status === "cancelled") return { ok: false, reason: "cancelled" };
+  if (g.hostId === userId) return { ok: false, reason: "is_host" };
 
   const existing = await db
     .select()

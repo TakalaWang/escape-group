@@ -27,6 +27,7 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
         full: "這個團已經額滿了！",
         already_joined: "你已經加入這個團了。",
         cancelled: "這個團已被取消。",
+        is_host: "你是團主，不需要加入自己的團。",
       };
 
       if (!result.ok) {

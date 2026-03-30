@@ -69,8 +69,9 @@ app.post("/groups", async (c) => {
 
     return c.json({ id: group.id, status: "created" }, 201);
   } catch (err) {
-    console.error("Create group error:", err);
-    return c.json({ error: "Internal server error" }, 500);
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("Create group error:", message, err);
+    return c.json({ error: message }, 500);
   }
 });
 
