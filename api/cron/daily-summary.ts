@@ -1,3 +1,5 @@
+export const config = { runtime: "edge" };
+
 import { runDailySummary } from "../../src/cron/daily-summary.js";
 
 export default async function handler(req: Request): Promise<Response> {
