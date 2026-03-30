@@ -171,8 +171,7 @@
             return;
           }
 
-          const apiBase = window.location.origin;
-          const res = await fetch(apiBase + "/api/groups", {
+          const res = await fetch("https://escape-group.vercel.app/api/groups", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
