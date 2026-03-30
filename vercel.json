@@ -1,4 +1,4 @@
 {
-  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/[[...route]]" }],
+  "buildCommand": "",
   "crons": [{ "path": "/api/cron/daily-summary", "schedule": "0 12 * * *" }]
 }
