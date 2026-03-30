@@ -16,13 +16,13 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.12",
     "@line/bot-sdk": "^9.7.0",
-    "@neondatabase/serverless": "^1.0.2",
     "drizzle-orm": "^0.45.1",
-    "hono": "^4.7.6"
+    "hono": "^4.7.6",
+    "postgres": "^3.4.8"
   },
   "devDependencies": {
-    "@hono/node-server": "^1.14.1",
     "@types/node": "^22.15.3",
     "drizzle-kit": "^0.31.10",
     "prettier": "^3.8.1",
