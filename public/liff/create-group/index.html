@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>開團</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #f5f5f5;
+        padding: 16px;
+      }
+      .form-group {
+        margin-bottom: 16px;
+      }
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: #333;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+      }
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #06c755;
+      }
+      .required::after {
+        content: " *";
+        color: red;
+      }
+      .hint {
+        font-size: 12px;
+        color: #888;
+        margin-top: 4px;
+      }
+      button {
+        width: 100%;
+        padding: 14px;
+        background: #06c755;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 8px;
+      }
+      button:disabled {
+        background: #ccc;
+      }
+      .error {
+        color: red;
+        font-size: 14px;
+        margin-top: 8px;
+        display: none;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+      }
+      .row .form-group {
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <form id="form">
+      <div class="form-group">
+        <label class="required">密室名稱</label>
+        <input type="text" id="roomName" placeholder="例：笑笑羊牧場" required />
+      </div>
+
+      <div class="form-group">
+        <label>工作室</label>
+        <input type="text" id="studio" placeholder="例：密室逃脫工作室" />
+      </div>
+
+      <div class="form-group">
+        <label>地區</label>
+        <select id="location">
+          <option value="">不指定</option>
+          <option value="north">北部</option>
+          <option value="central">中部</option>
+          <option value="south">南部</option>
+          <option value="east">東部</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>活動時間</label>
+        <input type="datetime-local" id="datetime" />
+        <div class="hint">可之後再決定</div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label class="required">人數上限</label>
+          <input type="number" id="maxMembers" min="2" max="20" value="6" />
+        </div>
+        <div class="form-group">
+          <label>已有人數</label>
+          <input type="number" id="prefilledMembers" min="1" max="19" value="1" />
+          <div class="hint">含你自己</div>
+        </div>
+      </div>
+
+      <div class="error" id="error"></div>
+      <button type="submit" id="submitBtn">開團</button>
+    </form>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+      const LIFF_ID = "2009652339-gCUXwKhA";
+
+      async function init() {
+        try {
+          await liff.init({ liffId: LIFF_ID });
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+        } catch (e) {
+          showError("LIFF 初始化失敗：" + e.message);
+        }
+      }
+
+      function showError(msg) {
+        const el = document.getElementById("error");
+        el.textContent = msg;
+        el.style.display = "block";
+      }
+
+      document.getElementById("form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("submitBtn");
+        btn.disabled = true;
+        btn.textContent = "送出中...";
+
+        try {
+          const profile = await liff.getProfile();
+          const datetime = document.getElementById("datetime").value;
+
+          const payload = {
+            lineUserId: profile.userId,
+            roomName: document.getElementById("roomName").value.trim(),
+            studio: document.getElementById("studio").value.trim() || undefined,
+            location: document.getElementById("location").value || undefined,
+            datetime: datetime ? new Date(datetime).toISOString() : undefined,
+            maxMembers: parseInt(document.getElementById("maxMembers").value),
+            prefilledMembers: parseInt(document.getElementById("prefilledMembers").value),
+          };
+
+          if (!payload.roomName) {
+            showError("請填寫密室名稱");
+            btn.disabled = false;
+            btn.textContent = "開團";
+            return;
+          }
+
+          const res = await fetch("/api/groups", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || "開團失敗");
+          }
+
+          await liff.sendMessages([
+            {
+              type: "text",
+              text: "✅ 開團成功！已在大群發布公告。",
+            },
+          ]);
+
+          liff.closeWindow();
+        } catch (err) {
+          showError(err.message);
+          btn.disabled = false;
+          btn.textContent = "開團";
+        }
+      });
+
+      init();
+    </script>
+  </body>
+</html>

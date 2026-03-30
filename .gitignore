@@ -3,7 +3,6 @@ node_modules
 .env.*
 !.env.example
 dist
-.svelte-kit
 .vercel
 *.db
 .DS_Store

@@ -1,21 +1,33 @@
 {
-  "name": "escape-group",
+  "name": "escape-group-bot",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --filter @escape-group/web dev",
-    "build": "pnpm --filter @escape-group/web build",
-    "db:generate": "pnpm --filter @escape-group/db generate",
-    "db:migrate": "pnpm --filter @escape-group/db migrate",
-    "db:push": "pnpm --filter @escape-group/db push",
-    "db:seed": "pnpm --filter @escape-group/db seed",
-    "test": "pnpm --filter @escape-group/web test",
-    "check": "pnpm --filter @escape-group/web check",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@line/bot-sdk": "^9.7.0",
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.7.6",
+    "postgres": "^3.4.8"
   },
   "devDependencies": {
+    "@hono/node-server": "^1.14.1",
+    "@types/node": "^22.15.3",
+    "drizzle-kit": "^0.31.10",
     "prettier": "^3.8.1",
-    "prettier-plugin-svelte": "^3.5.1"
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.2"
   }
 }
