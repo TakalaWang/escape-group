@@ -1,5 +1,5 @@
 import { db } from "../db/client.js";
-import { groupMembers, groups } from "../db/schema.js";
+import { groupMembers, groups, users } from "../db/schema.js";
 import { eq, and, sql } from "drizzle-orm";
 
 type JoinResult =
@@ -13,6 +13,13 @@ export async function joinGroup(groupId: string, userId: string): Promise<JoinRe
   const g = group[0];
   if (g.status === "cancelled") return { ok: false, reason: "cancelled" };
   if (g.hostId === userId) return { ok: false, reason: "is_host" };
+
+  // Cross-channel host check: compare displayName since LIFF and Messaging API have different userIds
+  const [host] = await db.select().from(users).where(eq(users.id, g.hostId)).limit(1);
+  const [joiner] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (host && joiner && host.displayName === joiner.displayName) {
+    return { ok: false, reason: "is_host" };
+  }
 
   const existing = await db
     .select()

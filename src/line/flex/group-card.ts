@@ -124,7 +124,6 @@ export function buildGroupCard(input: GroupCardInput): messagingApi.FlexMessage 
             type: "postback",
             label: "我要加入",
             data: `action=join&groupId=${input.id}`,
-            displayText: "我要加入！",
           },
         },
       ],
