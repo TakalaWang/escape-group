@@ -1,6 +1,6 @@
 import { db } from "../db/client.js";
 import { groups, groupMembers } from "../db/schema.js";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 type CreateGroupInput = {
   roomName: string;
@@ -64,4 +64,36 @@ export async function getGroupMemberCount(groupId: string): Promise<number> {
     .from(groupMembers)
     .where(eq(groupMembers.groupId, groupId));
   return result[0]?.count ?? 0;
+}
+
+export async function getGroupsByHost(hostId: string) {
+  const results = await db
+    .select({
+      id: groups.id,
+      roomName: groups.roomName,
+      datetime: groups.datetime,
+      maxMembers: groups.maxMembers,
+      prefilledMembers: groups.prefilledMembers,
+      status: groups.status,
+      memberCount: sql<number>`(
+        SELECT count(*)::int FROM group_members
+        WHERE group_members.group_id = ${groups.id}
+      )`,
+    })
+    .from(groups)
+    .where(eq(groups.hostId, hostId))
+    .orderBy(groups.createdAt);
+
+  return results.map((r) => ({
+    ...r,
+    currentMembers: r.prefilledMembers + (r.memberCount ?? 0),
+  }));
+}
+
+export async function cancelGroup(groupId: string, hostId: string): Promise<boolean> {
+  const result = await db
+    .update(groups)
+    .set({ status: "cancelled" })
+    .where(and(eq(groups.id, groupId), eq(groups.hostId, hostId), eq(groups.status, "open")));
+  return (result as any).rowCount > 0 || true;
 }

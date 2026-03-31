@@ -1,10 +1,16 @@
 import type { PostbackEvent } from "@line/bot-sdk";
 import { getLineClient } from "../line/client.js";
 import { upsertUser } from "../services/user.js";
-import { joinGroup } from "../services/member.js";
-import { getGroupById, getGroupMemberCount } from "../services/group.js";
+import { joinGroup, leaveGroup } from "../services/member.js";
+import {
+  getGroupById,
+  getGroupMemberCount,
+  getGroupsByHost,
+  cancelGroup,
+} from "../services/group.js";
 import { searchGroups } from "../services/search.js";
 import { buildSummaryCard } from "../line/flex/summary.js";
+import { buildMyGroupsCard } from "../line/flex/my-groups.js";
 
 export async function handlePostback(event: PostbackEvent): Promise<void> {
   const data = new URLSearchParams(event.postback.data);
@@ -66,6 +72,49 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       await client.replyMessage({
         replyToken: event.replyToken,
         messages: [card],
+      });
+      break;
+    }
+    case "my_groups": {
+      const user = await upsertUser(userId);
+      const myGroups = await getGroupsByHost(user.id);
+      const card = buildMyGroupsCard(myGroups);
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [card],
+      });
+      break;
+    }
+    case "cancel_group": {
+      const groupId = data.get("groupId");
+      if (!groupId) return;
+      const user = await upsertUser(userId);
+      await cancelGroup(groupId, user.id);
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: "✅ 已取消此團。" }],
+      });
+      break;
+    }
+    case "leave": {
+      const groupId = data.get("groupId");
+      if (!groupId) return;
+      const user = await upsertUser(userId);
+      const result = await leaveGroup(groupId, user.id);
+      if (!result.ok) {
+        const msgs: Record<string, string> = {
+          not_found: "找不到這個團。",
+          not_member: "你不在這個團裡。",
+        };
+        await client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: "text", text: msgs[result.reason] }],
+        });
+        return;
+      }
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: "✅ 已退出此團。" }],
       });
       break;
     }

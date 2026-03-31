@@ -43,3 +43,29 @@ export async function joinGroup(groupId: string, userId: string): Promise<JoinRe
 
   return { ok: true };
 }
+
+type LeaveResult = { ok: true } | { ok: false; reason: "not_found" | "not_member" };
+
+export async function leaveGroup(groupId: string, userId: string): Promise<LeaveResult> {
+  const group = await db.select().from(groups).where(eq(groups.id, groupId)).limit(1);
+  if (group.length === 0) return { ok: false, reason: "not_found" };
+
+  const existing = await db
+    .select()
+    .from(groupMembers)
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)))
+    .limit(1);
+  if (existing.length === 0) return { ok: false, reason: "not_member" };
+
+  await db
+    .delete(groupMembers)
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+
+  // Reopen group if it was full
+  const g = group[0];
+  if (g.status === "full") {
+    await db.update(groups).set({ status: "open" }).where(eq(groups.id, groupId));
+  }
+
+  return { ok: true };
+}
