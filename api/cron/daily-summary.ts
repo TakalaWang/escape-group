@@ -10,15 +10,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     return;
   }
 
-  const lineGroupId = process.env.LINE_GROUP_ID;
-  if (!lineGroupId) {
-    res.statusCode = 500;
-    res.end(JSON.stringify({ error: "LINE_GROUP_ID not configured" }));
-    return;
-  }
-
   try {
-    await runDailySummary(lineGroupId);
+    await runDailySummary();
     res.statusCode = 200;
     res.end(JSON.stringify({ status: "ok" }));
   } catch (err) {

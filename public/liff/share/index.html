@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>分享彙整</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC", sans-serif;
+        background: #f5f6f8;
+        color: #1a1a1a;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        max-width: 360px;
+        width: 100%;
+        text-align: center;
+      }
+      h1 {
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+      p {
+        font-size: 13px;
+        color: #888;
+        margin-bottom: 20px;
+      }
+      .preview {
+        background: #f5f6f8;
+        border-radius: 10px;
+        padding: 14px;
+        text-align: left;
+        font-size: 13px;
+        color: #333;
+        max-height: 300px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        line-height: 1.6;
+        margin-bottom: 16px;
+      }
+      .share-btn {
+        width: 100%;
+        padding: 14px;
+        background: #06c755;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .share-btn:active {
+        opacity: 0.9;
+      }
+      .share-btn:disabled {
+        background: #ccc;
+      }
+      .status {
+        margin-top: 12px;
+        font-size: 13px;
+        color: #888;
+      }
+      .status.success {
+        color: #06c755;
+      }
+      .status.error {
+        color: #e53e3e;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>分享開團彙整</h1>
+      <p>點擊下方按鈕分享到你的 OpenChat</p>
+      <div class="preview" id="preview">載入中...</div>
+      <button class="share-btn" id="shareBtn" disabled>分享到聊天室</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+      const LIFF_ID = "2009659299-rbF8C1zz";
+      const API = "https://escape-group.vercel.app/api";
+      let summaryText = "";
+
+      async function init() {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        // Load summary text
+        const res = await fetch(`${API}/summary-text`);
+        const data = await res.json();
+        summaryText = data.text;
+
+        document.getElementById("preview").textContent = summaryText;
+        document.getElementById("shareBtn").disabled = false;
+
+        document.getElementById("shareBtn").addEventListener("click", share);
+      }
+
+      async function share() {
+        const btn = document.getElementById("shareBtn");
+        const status = document.getElementById("status");
+        btn.disabled = true;
+
+        if (!liff.isApiAvailable("shareTargetPicker")) {
+          status.className = "status error";
+          status.textContent = "此環境不支援分享功能";
+          btn.disabled = false;
+          return;
+        }
+
+        try {
+          const result = await liff.shareTargetPicker([{ type: "text", text: summaryText }]);
+
+          if (result) {
+            status.className = "status success";
+            status.textContent = "已分享！";
+            setTimeout(() => liff.closeWindow(), 1000);
+          } else {
+            status.className = "status";
+            status.textContent = "已取消分享";
+            btn.disabled = false;
+          }
+        } catch (e) {
+          status.className = "status error";
+          status.textContent = "分享失敗：" + e.message;
+          btn.disabled = false;
+        }
+      }
+
+      init().catch((e) => {
+        document.getElementById("preview").textContent = "載入失敗：" + e.message;
+      });
+    </script>
+  </body>
+</html>

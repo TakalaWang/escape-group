@@ -9,7 +9,7 @@ import { searchGroups, buildSearchQuery } from "./services/search.js";
 import { buildGroupCard } from "./line/flex/group-card.js";
 import { getLineClient } from "./line/client.js";
 import { db } from "./db/client.js";
-import { groupMembers, groups as groupsTable, subscriptions, users } from "./db/schema.js";
+import { groupMembers, groups, groups as groupsTable, subscriptions, users } from "./db/schema.js";
 
 const app = new Hono().basePath("/api");
 
@@ -53,8 +53,10 @@ app.post("/groups", async (c) => {
     const user = await upsertUserFromLiff(lineUserId, displayName || "Unknown");
     const group = await createGroup(user.id, body);
 
-    const groupChatId = process.env.LINE_GROUP_ID;
-    if (groupChatId) {
+    // Notify admins about new group (for forwarding to OpenChat)
+    const adminIds = (process.env.ADMIN_USER_IDS ?? "").split(",").filter(Boolean);
+    const client = getLineClient();
+    for (const adminId of adminIds) {
       try {
         const card = buildGroupCard({
           ...group,
@@ -62,10 +64,9 @@ app.post("/groups", async (c) => {
           currentMembers: group.prefilledMembers,
           price: group.price,
         });
-        const client = getLineClient();
-        await client.pushMessage({ to: groupChatId, messages: [card] });
+        await client.pushMessage({ to: adminId, messages: [card] });
       } catch (err) {
-        console.error("Failed to push announcement:", err);
+        console.error("Failed to notify admin:", err);
       }
     }
 
@@ -132,6 +133,44 @@ app.post("/groups", async (c) => {
     console.error("Create group error:", message, err);
     return c.json({ error: message }, 500);
   }
+});
+
+// Text summary for sharing to OpenChat
+app.get("/summary-text", async (c) => {
+  const { buildTextSummary } = await import("./cron/daily-summary.js");
+  const openGroups = await db
+    .select({
+      id: groups.id,
+      roomName: groups.roomName,
+      studio: groups.studio,
+      location: groups.location,
+      datetime: groups.datetime,
+      duration: groups.duration,
+      minMembers: groups.minMembers,
+      maxMembers: groups.maxMembers,
+      prefilledMembers: groups.prefilledMembers,
+      price: groups.price,
+      hostId: groups.hostId,
+      memberCount: sql`(SELECT count(*)::int FROM group_members WHERE group_members.group_id = ${groups.id})`,
+    })
+    .from(groups)
+    .where(eq(groups.status, "open"))
+    .orderBy(groups.datetime, groups.createdAt);
+
+  const hostIds = [...new Set(openGroups.map((g) => g.hostId))];
+  const hosts =
+    hostIds.length > 0
+      ? await db.select({ id: users.id, displayName: users.displayName }).from(users)
+      : [];
+  const hostMap = new Map(hosts.map((h) => [h.id, h.displayName]));
+
+  const summaryGroups = openGroups.map((g: any) => ({
+    ...g,
+    currentMembers: g.prefilledMembers + (g.memberCount ?? 0),
+    hostName: hostMap.get(g.hostId),
+  }));
+
+  return c.json({ text: buildTextSummary(summaryGroups) });
 });
 
 app.get("/groups", async (c) => {
