@@ -93,6 +93,11 @@ export async function runDailySummary(lineGroupId: string): Promise<void> {
           const [pMin, pMax] = s.value.split("-").map(Number);
           if ((!pMin || g.price >= pMin) && (!pMax || g.price <= pMax)) return true;
         }
+        if (s.type === "weekday" && g.datetime) {
+          const dayOfWeek = g.datetime.getDay();
+          const subscribedDays = s.value.split(",").map(Number);
+          if (subscribedDays.includes(dayOfWeek)) return true;
+        }
         return false;
       })
     );

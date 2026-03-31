@@ -28,18 +28,15 @@
       .header h1 {
         font-size: 20px;
         font-weight: 700;
-        letter-spacing: 0.5px;
       }
       .header p {
         font-size: 13px;
         opacity: 0.85;
         margin-top: 4px;
       }
-
       .content {
         padding: 16px;
       }
-
       .section {
         background: white;
         border-radius: 12px;
@@ -58,137 +55,214 @@
         border-bottom: 1px solid #f0f0f0;
       }
 
+      /* Current subscriptions */
+      .sub-list {
+        min-height: 40px;
+      }
       .sub-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 10px 0;
         border-bottom: 1px solid #f5f5f5;
+        animation: fadeIn 0.2s ease;
       }
       .sub-item:last-child {
         border-bottom: none;
       }
-      .sub-item .label {
-        font-size: 14px;
+      .sub-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
       }
-      .sub-item .type-badge {
-        display: inline-block;
+      .sub-badge {
+        display: inline-flex;
+        align-items: center;
         font-size: 11px;
-        padding: 2px 6px;
+        padding: 2px 8px;
         border-radius: 4px;
-        margin-right: 6px;
         font-weight: 600;
+        white-space: nowrap;
       }
-      .type-location {
+      .badge-location {
         background: #dbeafe;
         color: #1d4ed8;
       }
-      .type-keyword {
+      .badge-keyword {
         background: #fef3c7;
         color: #92400e;
       }
-      .type-price {
+      .badge-price {
         background: #d1fae5;
         color: #065f46;
       }
-      .delete-btn {
-        background: none;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        padding: 4px 10px;
-        font-size: 12px;
-        color: #999;
-        cursor: pointer;
-        transition: all 0.2s;
+      .badge-weekday {
+        background: #ede9fe;
+        color: #6d28d9;
       }
-      .delete-btn:active {
-        background: #fef2f2;
-        border-color: #fca5a5;
+      .sub-value {
+        font-size: 14px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .del-btn {
+        background: none;
+        border: none;
+        color: #ccc;
+        font-size: 18px;
+        padding: 8px;
+        cursor: pointer;
+        transition: color 0.2s;
+        flex-shrink: 0;
+      }
+      .del-btn:active {
         color: #e53e3e;
       }
-
-      .empty-state {
+      .empty {
         text-align: center;
-        padding: 20px 0;
-        color: #999;
+        padding: 16px 0;
+        color: #bbb;
         font-size: 14px;
       }
 
-      .add-section {
-        margin-top: 8px;
-      }
-      .add-title {
-        font-size: 13px;
-        font-weight: 600;
-        color: #555;
-        margin-bottom: 8px;
-      }
-      .add-type-tabs {
+      /* Add section */
+      .add-tabs {
         display: flex;
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: 6px;
+        margin-bottom: 14px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
       }
-      .tab-btn {
-        flex: 1;
-        padding: 8px;
-        border: 1.5px solid #e0e0e0;
-        border-radius: 8px;
-        background: white;
-        font-size: 13px;
-        font-weight: 600;
-        color: #666;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-align: center;
-      }
-      .tab-btn.active {
-        border-color: #8b5cf6;
-        color: #8b5cf6;
-        background: #f5f3ff;
-      }
-      .tab-btn:active {
-        transform: scale(0.97);
-      }
-
-      .add-form {
+      .add-tabs::-webkit-scrollbar {
         display: none;
       }
-      .add-form.show {
-        display: block;
-      }
-
-      .location-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-      }
-      .location-btn {
-        padding: 10px 4px;
+      .tab {
+        padding: 8px 14px;
         border: 1.5px solid #e0e0e0;
-        border-radius: 8px;
+        border-radius: 20px;
         background: white;
         font-size: 13px;
-        text-align: center;
+        font-weight: 600;
+        color: #888;
         cursor: pointer;
         transition: all 0.2s;
+        white-space: nowrap;
       }
-      .location-btn:active {
-        transform: scale(0.95);
-      }
-      .location-btn.subscribed {
+      .tab.active {
         border-color: #8b5cf6;
-        background: #f5f3ff;
         color: #8b5cf6;
+        background: #f5f3ff;
+      }
+      .tab:active {
+        transform: scale(0.96);
       }
 
+      .panel {
+        display: none;
+      }
+      .panel.show {
+        display: block;
+        animation: fadeIn 0.2s ease;
+      }
+
+      /* Location grid */
+      .region {
+        margin-bottom: 12px;
+      }
       .region-label {
         font-size: 11px;
         color: #999;
         font-weight: 600;
-        margin: 8px 0 4px;
-        grid-column: 1 / -1;
+        margin-bottom: 6px;
+      }
+      .city-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .city-btn {
+        padding: 8px 14px;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .city-btn:active {
+        transform: scale(0.95);
+      }
+      .city-btn.on {
+        border-color: #8b5cf6;
+        background: #f5f3ff;
+        color: #8b5cf6;
+        font-weight: 600;
       }
 
+      /* Weekday grid */
+      .day-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+      }
+      .day-btn {
+        padding: 12px 0;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        font-size: 14px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-weight: 500;
+      }
+      .day-btn:active {
+        transform: scale(0.93);
+      }
+      .day-btn.on {
+        border-color: #8b5cf6;
+        background: #8b5cf6;
+        color: white;
+      }
+      .day-btn.weekend {
+        color: #e53e3e;
+      }
+      .day-btn.weekend.on {
+        background: #8b5cf6;
+        color: white;
+      }
+      .day-hint {
+        font-size: 12px;
+        color: #999;
+        margin-top: 8px;
+      }
+      .day-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .day-save {
+        flex: 1;
+        padding: 10px;
+        background: #8b5cf6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .day-save:active {
+        opacity: 0.85;
+      }
+      .day-save:disabled {
+        background: #ccc;
+      }
+
+      /* Input row */
       .input-row {
         display: flex;
         gap: 8px;
@@ -224,15 +298,44 @@
         font-weight: 600;
         cursor: pointer;
         white-space: nowrap;
-        transition: opacity 0.2s;
       }
       .add-btn:active {
-        opacity: 0.8;
-      }
-      .add-btn:disabled {
-        background: #ccc;
+        opacity: 0.85;
       }
 
+      /* Price range */
+      .price-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .price-row input {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 15px;
+        background: #fafafa;
+        -webkit-appearance: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+      .price-row input:focus {
+        outline: none;
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        background: white;
+      }
+      .price-row input::placeholder {
+        color: #c0c0c0;
+      }
+      .price-sep {
+        color: #bbb;
+        font-size: 16px;
+      }
+
+      /* Toast */
       .toast {
         position: fixed;
         bottom: 80px;
@@ -260,6 +363,16 @@
         font-size: 14px;
       }
 
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
@@ -278,51 +391,51 @@
 
     <div class="content">
       <div id="loadingState" class="loading">載入中...</div>
-
-      <div id="mainContent" style="display: none">
+      <div id="main" style="display: none">
         <!-- Current subscriptions -->
         <div class="section">
           <div class="section-title">我的訂閱</div>
-          <div id="subList"></div>
+          <div class="sub-list" id="subList"></div>
         </div>
 
         <!-- Add new -->
         <div class="section">
           <div class="section-title">新增訂閱</div>
-          <div class="add-type-tabs">
-            <div class="tab-btn active" data-type="location">地區</div>
-            <div class="tab-btn" data-type="keyword">關鍵字</div>
-            <div class="tab-btn" data-type="price">價格</div>
+          <div class="add-tabs" id="tabs">
+            <div class="tab active" data-tab="location">地區</div>
+            <div class="tab" data-tab="weekday">星期</div>
+            <div class="tab" data-tab="keyword">關鍵字</div>
+            <div class="tab" data-tab="price">價格</div>
           </div>
 
-          <div id="form-location" class="add-form show">
-            <div class="location-grid" id="locationGrid"></div>
+          <!-- Location panel -->
+          <div class="panel show" id="panel-location">
+            <div id="locationGrid"></div>
           </div>
 
-          <div id="form-keyword" class="add-form">
-            <div class="input-row">
-              <input type="text" id="keywordInput" placeholder="密室名稱或工作室" />
-              <button class="add-btn" id="addKeywordBtn">新增</button>
+          <!-- Weekday panel -->
+          <div class="panel" id="panel-weekday">
+            <div class="day-grid" id="dayGrid"></div>
+            <div class="day-hint">選擇你有空的日子，只通知這些天的團</div>
+            <div class="day-actions">
+              <button class="day-save" id="saveDaysBtn">儲存</button>
             </div>
           </div>
 
-          <div id="form-price" class="add-form">
+          <!-- Keyword panel -->
+          <div class="panel" id="panel-keyword">
             <div class="input-row">
-              <input
-                type="number"
-                id="priceMinInput"
-                inputmode="numeric"
-                placeholder="最低"
-                min="0"
-              />
-              <span style="line-height: 42px; color: #999">~</span>
-              <input
-                type="number"
-                id="priceMaxInput"
-                inputmode="numeric"
-                placeholder="最高"
-                min="0"
-              />
+              <input type="text" id="kwInput" placeholder="密室名稱或工作室" />
+              <button class="add-btn" id="addKwBtn">新增</button>
+            </div>
+          </div>
+
+          <!-- Price panel -->
+          <div class="panel" id="panel-price">
+            <div class="price-row">
+              <input type="number" id="priceMin" inputmode="numeric" placeholder="最低" min="0" />
+              <span class="price-sep">~</span>
+              <input type="number" id="priceMax" inputmode="numeric" placeholder="最高" min="0" />
               <button class="add-btn" id="addPriceBtn">設定</button>
             </div>
           </div>
@@ -335,7 +448,7 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script>
       const LIFF_ID = "2009659299-irfLX2Pl";
-      const API_BASE = "https://escape-group.vercel.app/api";
+      const API = "https://escape-group.vercel.app/api";
       const LOCATIONS = {
         北部: {
           keelung: "基隆",
@@ -353,189 +466,256 @@
           chiayi: "嘉義",
         },
         南部: { tainan: "台南", kaohsiung: "高雄", pingtung: "屏東" },
-        東部: { yilan: "宜蘭", hualien: "花蓮", taitung: "台東" },
-        離島: { penghu: "澎湖", kinmen: "金門", matsu: "馬祖" },
+        "東部+離島": {
+          yilan: "宜蘭",
+          hualien: "花蓮",
+          taitung: "台東",
+          penghu: "澎湖",
+          kinmen: "金門",
+          matsu: "馬祖",
+        },
       };
+      const DAY_NAMES = ["日", "一", "二", "三", "四", "五", "六"];
+      const ALL_LOCATIONS = Object.values(LOCATIONS).reduce((a, r) => ({ ...a, ...r }), {});
 
-      let userId = null;
-      let displayName = null;
-      let currentSubs = [];
+      let uid = null,
+        dname = null,
+        subs = [];
 
+      // --- Init ---
       async function init() {
-        try {
-          await liff.init({ liffId: LIFF_ID });
-          if (!liff.isLoggedIn()) {
-            liff.login();
-            return;
-          }
-          const profile = await liff.getProfile();
-          userId = profile.userId;
-          displayName = profile.displayName;
-          await loadSubscriptions();
-          renderLocationGrid();
-          setupTabs();
-          setupAddButtons();
-          document.getElementById("loadingState").style.display = "none";
-          document.getElementById("mainContent").style.display = "block";
-        } catch (e) {
-          document.getElementById("loadingState").textContent = "載入失敗：" + e.message;
-        }
-      }
-
-      async function loadSubscriptions() {
-        const res = await fetch(`${API_BASE}/subscriptions?userId=${userId}`);
-        currentSubs = await res.json();
-        renderSubList();
-      }
-
-      function renderSubList() {
-        const el = document.getElementById("subList");
-        if (currentSubs.length === 0) {
-          el.innerHTML =
-            '<div class="empty-state">還沒有訂閱<br>在下方新增條件，有新團會通知你</div>';
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
           return;
         }
-        el.innerHTML = currentSubs
+        const p = await liff.getProfile();
+        uid = p.userId;
+        dname = p.displayName;
+        await load();
+        buildLocationGrid();
+        buildDayGrid();
+        setupTabs();
+        setupActions();
+        document.getElementById("loadingState").style.display = "none";
+        document.getElementById("main").style.display = "block";
+      }
+
+      // --- API ---
+      async function load() {
+        const r = await fetch(`${API}/subscriptions?userId=${uid}`);
+        subs = await r.json();
+        renderList();
+      }
+      async function addSub(type, value) {
+        const r = await fetch(`${API}/subscriptions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lineUserId: uid, displayName: dname, type, value }),
+        });
+        if (r.status === 409) {
+          toast("已訂閱過");
+          return false;
+        }
+        if (!r.ok) {
+          toast("新增失敗");
+          return false;
+        }
+        const sub = await r.json();
+        subs.push(sub);
+        renderList();
+        return true;
+      }
+      async function delSub(id) {
+        await fetch(`${API}/subscriptions/${id}`, { method: "DELETE" });
+        subs = subs.filter((s) => s.id !== id);
+        renderList();
+        updateLocationGrid();
+        updateDayGrid();
+        toast("已取消訂閱");
+      }
+
+      // --- Render subscription list ---
+      function renderList() {
+        const el = document.getElementById("subList");
+        if (subs.length === 0) {
+          el.innerHTML = '<div class="empty">還沒有訂閱，在下方新增條件</div>';
+          return;
+        }
+        el.innerHTML = subs
           .map((s) => {
-            let typeClass, typeLabel, valueLabel;
+            let badge, val;
             if (s.type === "location") {
-              typeClass = "type-location";
-              typeLabel = "地區";
-              valueLabel =
-                Object.values(LOCATIONS).reduce((acc, r) => ({ ...acc, ...r }), {})[s.value] ||
-                s.value;
+              badge = '<span class="sub-badge badge-location">地區</span>';
+              val = ALL_LOCATIONS[s.value] || s.value;
             } else if (s.type === "keyword") {
-              typeClass = "type-keyword";
-              typeLabel = "關鍵字";
-              valueLabel = s.value;
+              badge = '<span class="sub-badge badge-keyword">關鍵字</span>';
+              val = s.value;
+            } else if (s.type === "price") {
+              badge = '<span class="sub-badge badge-price">價格</span>';
+              const [mn, mx] = s.value.split("-").map(Number);
+              if (mn > 0 && mx > 0) val = `${mn}~${mx} 元`;
+              else if (mx > 0) val = `${mx} 元以下`;
+              else if (mn > 0) val = `${mn} 元以上`;
+              else val = s.value;
+            } else if (s.type === "weekday") {
+              badge = '<span class="sub-badge badge-weekday">星期</span>';
+              val =
+                "每週" +
+                s.value
+                  .split(",")
+                  .map(Number)
+                  .map((d) => DAY_NAMES[d])
+                  .join("、");
             } else {
-              typeClass = "type-price";
-              typeLabel = "價格";
-              const [pMin, pMax] = s.value.split("-").map(Number);
-              if (pMin > 0 && pMax > 0) valueLabel = `${pMin}~${pMax} 元`;
-              else if (pMax > 0) valueLabel = `${pMax} 元以下`;
-              else if (pMin > 0) valueLabel = `${pMin} 元以上`;
-              else valueLabel = s.value + " 元";
+              badge = "";
+              val = s.value;
             }
-            return `<div class="sub-item">
-          <span class="label"><span class="type-badge ${typeClass}">${typeLabel}</span>${valueLabel}</span>
-          <button class="delete-btn" onclick="deleteSub('${s.id}')">刪除</button>
+            return `<div class="sub-item" id="sub-${s.id}">
+          <div class="sub-info">${badge}<span class="sub-value">${val}</span></div>
+          <button class="del-btn" onclick="delSub('${s.id}')">✕</button>
         </div>`;
           })
           .join("");
-        updateLocationGrid();
       }
 
-      function renderLocationGrid() {
-        const grid = document.getElementById("locationGrid");
+      // --- Location grid ---
+      function buildLocationGrid() {
+        const el = document.getElementById("locationGrid");
         let html = "";
         for (const [region, cities] of Object.entries(LOCATIONS)) {
-          html += `<div class="region-label">${region}</div>`;
-          for (const [value, label] of Object.entries(cities)) {
-            html += `<div class="location-btn" data-value="${value}" onclick="toggleLocation('${value}')">${label}</div>`;
+          html += `<div class="region"><div class="region-label">${region}</div><div class="city-grid">`;
+          for (const [v, label] of Object.entries(cities)) {
+            html += `<div class="city-btn" data-loc="${v}" onclick="toggleLoc('${v}')">${label}</div>`;
           }
+          html += "</div></div>";
         }
-        grid.innerHTML = html;
+        el.innerHTML = html;
+        updateLocationGrid();
       }
-
       function updateLocationGrid() {
-        const subbed = new Set(
-          currentSubs.filter((s) => s.type === "location").map((s) => s.value)
-        );
-        document.querySelectorAll(".location-btn").forEach((btn) => {
-          btn.classList.toggle("subscribed", subbed.has(btn.dataset.value));
+        const subbed = new Set(subs.filter((s) => s.type === "location").map((s) => s.value));
+        document.querySelectorAll(".city-btn").forEach((b) => {
+          b.classList.toggle("on", subbed.has(b.dataset.loc));
         });
       }
-
-      async function toggleLocation(value) {
-        const existing = currentSubs.find((s) => s.type === "location" && s.value === value);
+      async function toggleLoc(v) {
+        const existing = subs.find((s) => s.type === "location" && s.value === v);
         if (existing) {
-          await deleteSub(existing.id);
+          await delSub(existing.id);
         } else {
-          await addSub("location", value);
-        }
-      }
-
-      async function addSub(type, value) {
-        try {
-          const res = await fetch(`${API_BASE}/subscriptions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ lineUserId: userId, displayName, type, value }),
-          });
-          if (res.status === 409) {
-            showToast("已經訂閱過了");
-            return;
+          if (await addSub("location", v)) {
+            toast("已訂閱 " + (ALL_LOCATIONS[v] || v));
+            updateLocationGrid();
           }
-          if (!res.ok) {
-            const d = await res.json();
-            showToast(d.error || "新增失敗");
-            return;
-          }
-          await loadSubscriptions();
-          showToast("已新增訂閱");
-        } catch (e) {
-          showToast("新增失敗");
         }
       }
 
-      async function deleteSub(id) {
-        try {
-          await fetch(`${API_BASE}/subscriptions/${id}`, { method: "DELETE" });
-          await loadSubscriptions();
-          showToast("已取消訂閱");
-        } catch (e) {
-          showToast("刪除失敗");
-        }
+      // --- Day grid ---
+      let selectedDays = new Set();
+      function buildDayGrid() {
+        const el = document.getElementById("dayGrid");
+        el.innerHTML = DAY_NAMES.map((name, i) => {
+          const weekend = i === 0 || i === 6 ? " weekend" : "";
+          return `<div class="day-btn${weekend}" data-day="${i}" onclick="toggleDay(${i})">${name}</div>`;
+        }).join("");
+        updateDayGrid();
+      }
+      function updateDayGrid() {
+        const existing = subs.find((s) => s.type === "weekday");
+        selectedDays = existing ? new Set(existing.value.split(",").map(Number)) : new Set();
+        document.querySelectorAll(".day-btn").forEach((b) => {
+          b.classList.toggle("on", selectedDays.has(Number(b.dataset.day)));
+        });
+        document.getElementById("saveDaysBtn").disabled = false;
+      }
+      function toggleDay(d) {
+        if (selectedDays.has(d)) selectedDays.delete(d);
+        else selectedDays.add(d);
+        document.querySelectorAll(".day-btn").forEach((b) => {
+          b.classList.toggle("on", selectedDays.has(Number(b.dataset.day)));
+        });
       }
 
+      // --- Tabs ---
       function setupTabs() {
-        document.querySelectorAll(".tab-btn").forEach((tab) => {
+        document.querySelectorAll(".tab").forEach((tab) => {
           tab.addEventListener("click", () => {
-            document.querySelectorAll(".tab-btn").forEach((t) => t.classList.remove("active"));
-            document.querySelectorAll(".add-form").forEach((f) => f.classList.remove("show"));
+            document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+            document.querySelectorAll(".panel").forEach((p) => p.classList.remove("show"));
             tab.classList.add("active");
-            document.getElementById("form-" + tab.dataset.type).classList.add("show");
+            document.getElementById("panel-" + tab.dataset.tab).classList.add("show");
           });
         });
       }
 
-      function setupAddButtons() {
-        document.getElementById("addKeywordBtn").addEventListener("click", async () => {
-          const input = document.getElementById("keywordInput");
+      // --- Action buttons ---
+      function setupActions() {
+        // Keyword
+        document.getElementById("addKwBtn").addEventListener("click", async () => {
+          const input = document.getElementById("kwInput");
           const v = input.value.trim();
           if (!v) return;
-          await addSub("keyword", v);
-          input.value = "";
+          if (await addSub("keyword", v)) {
+            toast("已訂閱「" + v + "」");
+            input.value = "";
+          }
         });
+        // Price
         document.getElementById("addPriceBtn").addEventListener("click", async () => {
-          const minInput = document.getElementById("priceMinInput");
-          const maxInput = document.getElementById("priceMaxInput");
-          const min = minInput.value ? parseInt(minInput.value) : 0;
-          const max = maxInput.value ? parseInt(maxInput.value) : 0;
-          if (min === 0 && max === 0) {
-            showToast("請至少填一個金額");
+          const mn = document.getElementById("priceMin").value
+            ? parseInt(document.getElementById("priceMin").value)
+            : 0;
+          const mx = document.getElementById("priceMax").value
+            ? parseInt(document.getElementById("priceMax").value)
+            : 0;
+          if (mn === 0 && mx === 0) {
+            toast("請至少填一個金額");
             return;
           }
-          if (min > 0 && max > 0 && min > max) {
-            showToast("最低不能大於最高");
+          if (mn > 0 && mx > 0 && mn > mx) {
+            toast("最低不能大於最高");
             return;
           }
-          const value = `${min}-${max}`;
-          await addSub("price", value);
-          minInput.value = "";
-          maxInput.value = "";
+          // Remove old price sub
+          const old = subs.find((s) => s.type === "price");
+          if (old) await delSub(old.id);
+          if (await addSub("price", `${mn}-${mx}`)) {
+            toast("已設定價格範圍");
+            document.getElementById("priceMin").value = "";
+            document.getElementById("priceMax").value = "";
+          }
+        });
+        // Weekday save
+        document.getElementById("saveDaysBtn").addEventListener("click", async () => {
+          if (selectedDays.size === 0) {
+            toast("請至少選一天");
+            return;
+          }
+          // Remove old weekday sub
+          const old = subs.find((s) => s.type === "weekday");
+          if (old) {
+            await fetch(`${API}/subscriptions/${old.id}`, { method: "DELETE" });
+            subs = subs.filter((s) => s.id !== old.id);
+          }
+          const value = [...selectedDays].sort().join(",");
+          if (await addSub("weekday", value)) {
+            toast("已設定通知日");
+            updateDayGrid();
+          }
         });
       }
 
-      function showToast(msg) {
+      function toast(msg) {
         const el = document.getElementById("toast");
         el.textContent = msg;
         el.classList.add("show");
         setTimeout(() => el.classList.remove("show"), 2000);
       }
 
-      init();
+      init().catch((e) => {
+        document.getElementById("loadingState").textContent = "載入失敗：" + e.message;
+      });
     </script>
   </body>
 </html>

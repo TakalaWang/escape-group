@@ -95,6 +95,12 @@ app.post("/groups", async (c) => {
           const [pMin, pMax] = sub.value.split("-").map(Number);
           if ((!pMin || body.price >= pMin) && (!pMax || body.price <= pMax)) matches = true;
         }
+        if (sub.type === "weekday" && body.datetime) {
+          const groupDate = new Date(body.datetime);
+          const dayOfWeek = groupDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+          const subscribedDays = sub.value.split(",").map(Number);
+          if (subscribedDays.includes(dayOfWeek)) matches = true;
+        }
 
         if (!matches) continue;
         notified.add(sub.lineUserId);

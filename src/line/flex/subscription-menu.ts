@@ -110,6 +110,14 @@ export function buildMySubscriptions(subs: Sub[]): messagingApi.FlexMessage {
       else if (pMax > 0) label = `💰 ${pMax} 元以下`;
       else if (pMin > 0) label = `💰 ${pMin} 元以上`;
       else label = `💰 ${s.value} 元`;
+    } else if (s.type === "weekday") {
+      const DAY_NAMES = ["日", "一", "二", "三", "四", "五", "六"];
+      const days = s.value
+        .split(",")
+        .map(Number)
+        .map((d) => DAY_NAMES[d])
+        .join("、");
+      label = `📅 每週${days}`;
     } else label = s.value;
 
     bodyContents.push({

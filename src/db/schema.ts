@@ -27,7 +27,12 @@ export const groupStatusEnum = pgEnum("group_status", ["open", "full", "complete
 
 export const memberStatusEnum = pgEnum("member_status", ["accepted", "attended", "no_show"]);
 
-export const subscriptionTypeEnum = pgEnum("subscription_type", ["location", "keyword", "price"]);
+export const subscriptionTypeEnum = pgEnum("subscription_type", [
+  "location",
+  "keyword",
+  "price",
+  "weekday",
+]);
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
