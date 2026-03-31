@@ -53,18 +53,30 @@ app.post("/groups", async (c) => {
     const user = await upsertUserFromLiff(lineUserId, displayName || "Unknown");
     const group = await createGroup(user.id, body);
 
-    // Notify admins about new group (for forwarding to OpenChat)
-    const adminIds = (process.env.ADMIN_USER_IDS ?? "").split(",").filter(Boolean);
+    // Send card to host (can long-press to forward to OpenChat)
     const client = getLineClient();
+    const cardData = {
+      ...group,
+      hostName: user.displayName,
+      currentMembers: group.prefilledMembers,
+      price: group.price,
+    };
+    try {
+      const hostCard = buildGroupCard(cardData);
+      await client.pushMessage({
+        to: lineUserId,
+        messages: [{ type: "text", text: "開團成功！長按下方卡片可以轉發到聊天室 👇" }, hostCard],
+      });
+    } catch (err) {
+      console.error("Failed to send card to host:", err);
+    }
+
+    // Notify admins
+    const adminIds = (process.env.ADMIN_USER_IDS ?? "").split(",").filter(Boolean);
     for (const adminId of adminIds) {
+      if (adminId === lineUserId) continue; // Skip if host is admin
       try {
-        const card = buildGroupCard({
-          ...group,
-          hostName: user.displayName,
-          currentMembers: group.prefilledMembers,
-          price: group.price,
-        });
-        await client.pushMessage({ to: adminId, messages: [card] });
+        await client.pushMessage({ to: adminId, messages: [buildGroupCard(cardData)] });
       } catch (err) {
         console.error("Failed to notify admin:", err);
       }

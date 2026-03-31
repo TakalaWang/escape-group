@@ -296,7 +296,7 @@
             <input
               type="text"
               id="roomName"
-              placeholder="例：笑笑羊牧場"
+              placeholder="例：密室逃脫"
               required
               autocomplete="off"
             />
@@ -361,15 +361,17 @@
           </div>
           <div class="form-group">
             <label>遊戲時長 <span class="optional">選填</span></label>
-            <select id="duration">
-              <option value="">不指定</option>
-              <option value="60">60 分鐘</option>
-              <option value="75">75 分鐘</option>
-              <option value="90">90 分鐘</option>
-              <option value="120">120 分鐘</option>
-              <option value="150">150 分鐘</option>
-              <option value="180">180 分鐘</option>
-            </select>
+            <div class="input-with-unit">
+              <input
+                type="number"
+                id="duration"
+                min="1"
+                max="300"
+                inputmode="numeric"
+                placeholder="例：90"
+              />
+              <span class="unit">分鐘</span>
+            </div>
           </div>
           <div class="row-3">
             <div class="form-group">

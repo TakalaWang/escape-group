@@ -22,7 +22,7 @@ describe("buildSearchQuery", () => {
   });
 
   it("parses keyword", () => {
-    const query = buildSearchQuery({ keyword: "笑笑羊" });
-    expect(query.keyword).toBe("笑笑羊");
+    const query = buildSearchQuery({ keyword: "密室" });
+    expect(query.keyword).toBe("密室");
   });
 });

@@ -4,7 +4,7 @@ import { buildGroupCard } from "../../../src/line/flex/group-card.js";
 describe("buildGroupCard", () => {
   const baseInput = {
     id: "test-group-id",
-    roomName: "笑笑羊牧場",
+    roomName: "密室逃脫",
     studio: "密室逃脫工作室",
     location: "taipei" as const,
     datetime: new Date("2026-04-05T14:00:00+08:00"),
@@ -19,7 +19,7 @@ describe("buildGroupCard", () => {
   it("returns a valid Flex Message object", () => {
     const card = buildGroupCard(baseInput);
     expect(card.type).toBe("flex");
-    expect(card.altText).toContain("笑笑羊牧場");
+    expect(card.altText).toContain("密室逃脫");
   });
 
   it("shows remaining spots", () => {

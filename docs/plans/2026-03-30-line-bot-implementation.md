@@ -1349,7 +1349,7 @@ Static HTML page for the group creation form, served from `public/`.
     <form id="form">
       <div class="form-group">
         <label class="required">密室名稱</label>
-        <input type="text" id="roomName" placeholder="例：笑笑羊牧場" required />
+        <input type="text" id="roomName" placeholder="例：密室逃脫" required />
       </div>
 
       <div class="form-group">
@@ -1525,8 +1525,8 @@ describe("buildSearchQuery", () => {
   });
 
   it("parses keyword", () => {
-    const query = buildSearchQuery({ keyword: "笑笑羊" });
-    expect(query.keyword).toBe("笑笑羊");
+    const query = buildSearchQuery({ keyword: "密室" });
+    expect(query.keyword).toBe("密室");
   });
 });
 ```

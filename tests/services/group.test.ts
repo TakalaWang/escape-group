@@ -7,7 +7,7 @@ import { validateCreateGroupInput } from "../../src/services/group.js";
 describe("validateCreateGroupInput", () => {
   it("accepts valid input", () => {
     const result = validateCreateGroupInput({
-      roomName: "笑笑羊牧場",
+      roomName: "密室逃脫",
       studio: "密室逃脫工作室",
       location: "taipei",
       datetime: "2026-04-05T14:00:00+08:00",
