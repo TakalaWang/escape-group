@@ -1,13 +1,23 @@
 import type { MessageEvent } from "@line/bot-sdk";
 import { getLineClient } from "../line/client.js";
 import { db } from "../db/client.js";
-import { groups, groupMembers, users } from "../db/schema.js";
+import { groups, groupMembers, users, subscriptions } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 
 const pendingSearchKeyword = new Map<string, boolean>();
+const pendingSubKeyword = new Map<string, boolean>();
+const pendingSubPrice = new Map<string, boolean>();
 
 export function setPendingSearch(userId: string) {
   pendingSearchKeyword.set(userId, true);
+}
+
+export function setPendingSubKeyword(userId: string) {
+  pendingSubKeyword.set(userId, true);
+}
+
+export function setPendingSubPrice(userId: string) {
+  pendingSubPrice.set(userId, true);
 }
 
 export async function handleMessage(event: MessageEvent): Promise<void> {
@@ -19,6 +29,79 @@ export async function handleMessage(event: MessageEvent): Promise<void> {
 
   const text = (event.message as { type: "text"; text: string }).text;
   const client = getLineClient();
+
+  // Check if user is providing a subscription keyword
+  if (pendingSubKeyword.has(userId)) {
+    pendingSubKeyword.delete(userId);
+    const { upsertUser } = await import("../services/user.js");
+    const user = await upsertUser(userId);
+
+    // Check duplicate
+    const existing = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.userId, user.id),
+          eq(subscriptions.type, "keyword"),
+          eq(subscriptions.value, text)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: "你已經訂閱過這個關鍵字了。" }],
+      });
+      return;
+    }
+
+    await db.insert(subscriptions).values({ userId: user.id, type: "keyword", value: text });
+    await client.replyMessage({
+      replyToken: event.replyToken,
+      messages: [
+        {
+          type: "text",
+          text: `✅ 已訂閱關鍵字「${text}」，有新團包含此關鍵字會通知你。`,
+        },
+      ],
+    });
+    return;
+  }
+
+  // Check if user is providing a subscription price
+  if (pendingSubPrice.has(userId)) {
+    pendingSubPrice.delete(userId);
+    const price = parseInt(text);
+    if (isNaN(price) || price <= 0) {
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: "請輸入有效的金額數字。" }],
+      });
+      return;
+    }
+
+    const { upsertUser } = await import("../services/user.js");
+    const user = await upsertUser(userId);
+
+    // Remove old price subscription if exists (only one price sub per user)
+    await db
+      .delete(subscriptions)
+      .where(and(eq(subscriptions.userId, user.id), eq(subscriptions.type, "price")));
+
+    await db.insert(subscriptions).values({ userId: user.id, type: "price", value: String(price) });
+    await client.replyMessage({
+      replyToken: event.replyToken,
+      messages: [
+        {
+          type: "text",
+          text: `✅ 已設定價格上限 ${price} 元，有符合的新團會通知你。`,
+        },
+      ],
+    });
+    return;
+  }
 
   // Check if user is providing a search keyword
   if (pendingSearchKeyword.has(userId)) {

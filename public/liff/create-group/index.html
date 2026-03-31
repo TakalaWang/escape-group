@@ -161,6 +161,12 @@
           <div class="hint">可之後再決定</div>
         </div>
 
+        <div class="form-group">
+          <label>每人費用</label>
+          <input type="number" id="price" min="0" placeholder="例：500" />
+          <div class="hint">選填，單位：元</div>
+        </div>
+
         <div class="divider"></div>
 
         <div class="row">
@@ -222,6 +228,9 @@
             datetime: datetime ? new Date(datetime).toISOString() : undefined,
             maxMembers: parseInt(document.getElementById("maxMembers").value),
             prefilledMembers: parseInt(document.getElementById("prefilledMembers").value),
+            price: document.getElementById("price").value
+              ? parseInt(document.getElementById("price").value)
+              : undefined,
           };
 
           if (!payload.roomName) {

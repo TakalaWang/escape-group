@@ -9,6 +9,7 @@ type SummaryGroup = {
   maxMembers: number;
   currentMembers: number;
   hostName?: string;
+  price?: number | null;
 };
 
 function formatDate(date: Date): string {
@@ -45,6 +46,18 @@ function buildBubble(g: SummaryGroup): messagingApi.FlexBubble {
       contents: [
         { type: "text", text: "📅", size: "sm", flex: 0 },
         { type: "text", text: formatDate(g.datetime), size: "sm", margin: "sm" },
+      ],
+    });
+  }
+
+  if (g.price) {
+    bodyContents.push({
+      type: "box",
+      layout: "horizontal",
+      margin: "md",
+      contents: [
+        { type: "text", text: "💰", size: "sm", flex: 0 },
+        { type: "text", text: `${g.price} 元/人`, size: "sm", margin: "sm" },
       ],
     });
   }

@@ -16,6 +16,11 @@ import { db } from "../db/client.js";
 import { users, subscriptions } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 import { setPendingSearch } from "./message.js";
+import {
+  buildSubscriptionMenu,
+  buildMySubscriptions,
+  buildLocationPicker,
+} from "../line/flex/subscription-menu.js";
 
 export async function handlePostback(event: PostbackEvent): Promise<void> {
   const data = new URLSearchParams(event.postback.data);
@@ -213,6 +218,34 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       });
       break;
     }
+    case "sub_menu": {
+      const menu = buildSubscriptionMenu();
+      await client.replyMessage({ replyToken: event.replyToken, messages: [menu] });
+      break;
+    }
+    case "sub_location": {
+      const picker = buildLocationPicker();
+      await client.replyMessage({ replyToken: event.replyToken, messages: [picker] });
+      break;
+    }
+    case "sub_keyword": {
+      const { setPendingSubKeyword } = await import("./message.js");
+      setPendingSubKeyword(userId);
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: "請輸入要訂閱的關鍵字（密室名稱或工作室）：" }],
+      });
+      break;
+    }
+    case "sub_price": {
+      const { setPendingSubPrice } = await import("./message.js");
+      setPendingSubPrice(userId);
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: "請輸入價格上限（元）：" }],
+      });
+      break;
+    }
     case "subscribe": {
       const type = data.get("type"); // "location" or "keyword"
       const value = data.get("value");
@@ -226,7 +259,7 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
         .where(
           and(
             eq(subscriptions.userId, user.id),
-            eq(subscriptions.type, type as "room" | "studio" | "location"),
+            eq(subscriptions.type, type as "location" | "keyword" | "price"),
             eq(subscriptions.value, value)
           )
         )
@@ -242,7 +275,7 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
 
       await db.insert(subscriptions).values({
         userId: user.id,
-        type: type as "room" | "studio" | "location",
+        type: type as "location" | "keyword" | "price",
         value,
       });
 
@@ -256,23 +289,17 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
     case "my_subscriptions": {
       const user = await upsertUser(userId);
       const subs = await db.select().from(subscriptions).where(eq(subscriptions.userId, user.id));
-
-      if (subs.length === 0) {
-        await client.replyMessage({
-          replyToken: event.replyToken,
-          messages: [{ type: "text", text: "你還沒有訂閱。\n\n使用找團功能時可以訂閱特定地區。" }],
-        });
-        return;
-      }
-
-      const lines = subs.map((s) => {
-        const label = s.type === "location" ? `📍 ${s.value}` : `🔍 ${s.value}`;
-        return label;
-      });
-
+      const card = buildMySubscriptions(subs);
+      await client.replyMessage({ replyToken: event.replyToken, messages: [card] });
+      break;
+    }
+    case "unsub": {
+      const subId = data.get("subId");
+      if (!subId) return;
+      await db.delete(subscriptions).where(eq(subscriptions.id, subId));
       await client.replyMessage({
         replyToken: event.replyToken,
-        messages: [{ type: "text", text: `📋 你的訂閱：\n\n${lines.join("\n")}` }],
+        messages: [{ type: "text", text: "✅ 已取消訂閱。" }],
       });
       break;
     }

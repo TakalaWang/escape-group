@@ -18,6 +18,7 @@ type CreateGroupInput = {
   datetime?: string;
   maxMembers: number;
   prefilledMembers?: number;
+  price?: number;
 };
 
 type ValidationResult = { ok: true } | { ok: false; error: string };
@@ -47,6 +48,7 @@ export async function createGroup(hostId: string, input: CreateGroupInput) {
       datetime: input.datetime ? new Date(input.datetime) : null,
       maxMembers: input.maxMembers,
       prefilledMembers: input.prefilledMembers ?? 1,
+      price: input.price ?? null,
     })
     .returning();
 

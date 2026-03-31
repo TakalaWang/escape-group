@@ -27,7 +27,7 @@ export const groupStatusEnum = pgEnum("group_status", ["open", "full", "complete
 
 export const memberStatusEnum = pgEnum("member_status", ["accepted", "attended", "no_show"]);
 
-export const subscriptionTypeEnum = pgEnum("subscription_type", ["room", "studio", "location"]);
+export const subscriptionTypeEnum = pgEnum("subscription_type", ["location", "keyword", "price"]);
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -50,6 +50,7 @@ export const groups = pgTable("groups", {
   datetime: timestamp("datetime", { withTimezone: true }),
   maxMembers: integer("max_members").notNull(),
   prefilledMembers: integer("prefilled_members").notNull().default(1),
+  price: integer("price"), // 每人費用
   status: groupStatusEnum("status").notNull().default("open"),
   lineGroupId: text("line_group_id"),
   lastAnnouncedAt: timestamp("last_announced_at", { withTimezone: true }),

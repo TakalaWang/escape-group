@@ -32,6 +32,7 @@ type GroupCardInput = {
   maxMembers: number;
   currentMembers: number;
   hostName: string;
+  price: number | null;
 };
 
 function formatDate(date: Date): string {
@@ -77,6 +78,18 @@ export function buildGroupCard(input: GroupCardInput): messagingApi.FlexMessage 
       contents: [
         { type: "text", text: "📅", size: "sm", flex: 0 },
         { type: "text", text: formatDate(input.datetime), size: "sm", margin: "sm" },
+      ],
+    });
+  }
+
+  if (input.price) {
+    bodyContents.push({
+      type: "box",
+      layout: "horizontal",
+      margin: "md",
+      contents: [
+        { type: "text", text: "💰", size: "sm", flex: 0 },
+        { type: "text", text: `${input.price} 元/人`, size: "sm", margin: "sm" },
       ],
     });
   }

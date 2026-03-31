@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { eq, or, and, ilike } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { verifySignature } from "./line/verify.js";
 import { handleWebhookEvents } from "./handlers/webhook.js";
 import { validateCreateGroupInput, createGroup } from "./services/group.js";
@@ -55,6 +55,7 @@ app.post("/groups", async (c) => {
           ...group,
           hostName: user.displayName,
           currentMembers: group.prefilledMembers,
+          price: group.price,
         });
         const client = getLineClient();
         await client.pushMessage({ to: groupChatId, messages: [card] });
@@ -65,47 +66,48 @@ app.post("/groups", async (c) => {
 
     // Notify subscribers
     try {
-      const matchConditions = [];
-      if (body.location) {
-        matchConditions.push(
-          and(eq(subscriptions.type, "location"), eq(subscriptions.value, body.location))
-        );
-      }
-      if (body.roomName) {
-        matchConditions.push(
-          and(eq(subscriptions.type, "room"), ilike(subscriptions.value, `%${body.roomName}%`))
-        );
-      }
-      if (body.studio) {
-        matchConditions.push(
-          and(eq(subscriptions.type, "studio"), ilike(subscriptions.value, `%${body.studio}%`))
-        );
-      }
-      if (matchConditions.length > 0) {
-        const matchedSubs = await db
-          .select({ lineUserId: users.lineUserId })
-          .from(subscriptions)
-          .innerJoin(users, eq(subscriptions.userId, users.id))
-          .where(or(...matchConditions));
+      const allSubs = await db
+        .select({
+          userId: subscriptions.userId,
+          type: subscriptions.type,
+          value: subscriptions.value,
+          lineUserId: users.lineUserId,
+        })
+        .from(subscriptions)
+        .innerJoin(users, eq(subscriptions.userId, users.id));
 
-        const lineClient = getLineClient();
-        const notified = new Set<string>();
-        for (const sub of matchedSubs) {
-          if (sub.lineUserId === lineUserId || notified.has(sub.lineUserId)) continue;
-          notified.add(sub.lineUserId);
-          try {
-            await lineClient.pushMessage({
-              to: sub.lineUserId,
-              messages: [
-                {
-                  type: "text",
-                  text: `🔔 新團通知：「${body.roomName}」${body.studio ? ` (${body.studio})` : ""} 正在揪人！`,
-                },
-              ],
-            });
-          } catch (e) {
-            console.error("Failed to notify subscriber:", e);
-          }
+      const lineClient = getLineClient();
+      const notified = new Set<string>();
+
+      for (const sub of allSubs) {
+        if (sub.lineUserId === lineUserId || notified.has(sub.lineUserId)) continue;
+
+        let matches = false;
+        if (sub.type === "location" && body.location === sub.value) matches = true;
+        if (sub.type === "keyword") {
+          const kw = sub.value.toLowerCase();
+          if (body.roomName?.toLowerCase().includes(kw) || body.studio?.toLowerCase().includes(kw))
+            matches = true;
+        }
+        if (sub.type === "price" && body.price != null) {
+          if (body.price <= parseInt(sub.value)) matches = true;
+        }
+
+        if (!matches) continue;
+        notified.add(sub.lineUserId);
+
+        try {
+          await lineClient.pushMessage({
+            to: sub.lineUserId,
+            messages: [
+              {
+                type: "text",
+                text: `🔔 新團通知：「${body.roomName}」${body.studio ? ` (${body.studio})` : ""}${body.price ? ` ${body.price}元/人` : ""} 正在揪人！`,
+              },
+            ],
+          });
+        } catch (e) {
+          console.error("Failed to notify subscriber:", e);
         }
       }
     } catch (err) {

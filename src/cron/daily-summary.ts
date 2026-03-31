@@ -14,6 +14,7 @@ export async function runDailySummary(lineGroupId: string): Promise<void> {
       datetime: groups.datetime,
       maxMembers: groups.maxMembers,
       prefilledMembers: groups.prefilledMembers,
+      price: groups.price,
       hostId: groups.hostId,
       memberCount: sql<number>`(
         SELECT count(*)::int FROM group_members
@@ -40,6 +41,7 @@ export async function runDailySummary(lineGroupId: string): Promise<void> {
     datetime: g.datetime,
     maxMembers: g.maxMembers,
     currentMembers: g.prefilledMembers + (g.memberCount ?? 0),
+    price: g.price,
     hostName: hostMap.get(g.hostId) ?? undefined,
   }));
 
@@ -80,8 +82,14 @@ export async function runDailySummary(lineGroupId: string): Promise<void> {
     const matched = summaryGroups.filter((g) =>
       subs.some((s) => {
         if (s.type === "location" && g.location === s.value) return true;
-        if (s.type === "room" && g.roomName.includes(s.value)) return true;
-        if (s.type === "studio" && g.studio?.includes(s.value)) return true;
+        if (s.type === "keyword") {
+          const kw = s.value.toLowerCase();
+          if (g.roomName.toLowerCase().includes(kw) || g.studio?.toLowerCase().includes(kw))
+            return true;
+        }
+        if (s.type === "price" && g.price != null) {
+          if (g.price <= parseInt(s.value)) return true;
+        }
         return false;
       })
     );
