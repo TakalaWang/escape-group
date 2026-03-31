@@ -63,11 +63,6 @@
         color: #555;
         margin-bottom: 6px;
       }
-      .city-wrap {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
       .chip {
         padding: 6px 12px;
         border: 1.5px solid #e0e0e0;
@@ -79,6 +74,47 @@
       }
       .chip:active {
         transform: scale(0.95);
+      }
+      .region-group {
+        margin-bottom: 8px;
+      }
+      .region-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        color: #555;
+        transition: background 0.2s;
+      }
+      .region-header:active {
+        background: #eee;
+      }
+      .region-header .arrow {
+        transition: transform 0.2s;
+        font-size: 12px;
+        color: #999;
+      }
+      .region-header.open .arrow {
+        transform: rotate(90deg);
+      }
+      .region-cities {
+        display: none;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 4px;
+      }
+      .region-cities.open {
+        display: flex;
+      }
+      .region-count {
+        font-size: 11px;
+        color: #aaa;
+        margin-left: 4px;
       }
       .chip.on {
         border-color: #06c755;
@@ -251,11 +287,30 @@
         color: #bbb;
         font-size: 14px;
       }
-      .loading {
-        text-align: center;
-        padding: 40px 0;
-        color: #999;
+      .loading-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 0;
+      }
+      .spinner {
+        width: 36px;
+        height: 36px;
+        border: 3px solid #e0e0e0;
+        border-top-color: #06c755;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      .loading-text {
+        margin-top: 12px;
         font-size: 14px;
+        color: #999;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       .toast {
@@ -296,6 +351,79 @@
           transition-duration: 0.01ms !important;
         }
       }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #1a1a1a;
+          color: #e5e5e5;
+        }
+        .section {
+          background: #2a2a2a;
+          box-shadow: none;
+        }
+        .section-title {
+          border-bottom-color: #333;
+        }
+        input,
+        select {
+          background: #333;
+          border-color: #444;
+          color: #e5e5e5;
+        }
+        input::placeholder {
+          color: #666;
+        }
+        input:focus,
+        select:focus {
+          background: #3a3a3a;
+          border-color: #06c755;
+        }
+        .filter-label {
+          color: #ccc;
+        }
+        .chip {
+          background: #333;
+          border-color: #444;
+          color: #ccc;
+        }
+        .chip.on {
+          background: #1a3a1a;
+          border-color: #06c755;
+          color: #06c755;
+        }
+        .result-card {
+          background: #2a2a2a;
+          box-shadow: none;
+        }
+        .rc-tag {
+          background: #333;
+          color: #aaa;
+        }
+        .rc-members {
+          border-top-color: #333;
+        }
+        .empty-results,
+        .loading-text {
+          color: #666;
+        }
+        .clear-btn {
+          border-color: #444;
+          color: #777;
+        }
+        .date-sep {
+          color: #555;
+        }
+        .toast {
+          background: #e5e5e5;
+          color: #1a1a1a;
+        }
+        .region-header {
+          background: #333;
+          color: #ccc;
+        }
+        .region-cities {
+          background: transparent;
+        }
+      }
     </style>
   </head>
   <body>
@@ -304,14 +432,17 @@
       <p>搜尋符合條件的密室團</p>
     </div>
     <div class="content">
-      <div id="loadingState" class="loading">載入中...</div>
+      <div id="loadingState" class="loading-screen">
+        <div class="spinner"></div>
+        <div class="loading-text">載入中</div>
+      </div>
       <div id="main" style="display: none">
         <div class="section">
           <div class="section-title">篩選條件</div>
 
           <div class="filter-row">
             <div class="filter-label">地區</div>
-            <div class="city-wrap" id="cityWrap"></div>
+            <div id="regionList"></div>
           </div>
 
           <div class="filter-row">
@@ -409,17 +540,36 @@
         document.getElementById("loadingState").style.display = "none";
         document.getElementById("main").style.display = "block";
         search(); // Load all groups initially
+
+        const joinId = new URLSearchParams(window.location.search).get("join");
+        if (joinId) {
+          const btn = document.createElement("button");
+          joinGroup(joinId, btn, "", 0);
+        }
       }
 
       function buildCityGrid() {
-        const el = document.getElementById("cityWrap");
+        const el = document.getElementById("regionList");
         let html = "";
-        for (const cities of Object.values(LOCATIONS)) {
-          for (const [v, label] of Object.entries(cities)) {
+        for (const [region, cities] of Object.entries(LOCATIONS)) {
+          const entries = Object.entries(cities);
+          html += `<div class="region-group">
+            <div class="region-header" onclick="toggleRegion(this)">
+              <span>${region}<span class="region-count">(${entries.length})</span></span>
+              <span class="arrow">\u25B6</span>
+            </div>
+            <div class="region-cities">`;
+          for (const [v, label] of entries) {
             html += `<div class="chip" data-loc="${v}" onclick="toggleCity('${v}')">${label}</div>`;
           }
+          html += `</div></div>`;
         }
         el.innerHTML = html;
+      }
+
+      function toggleRegion(header) {
+        header.classList.toggle("open");
+        header.nextElementSibling.classList.toggle("open");
       }
 
       function toggleCity(v) {
@@ -513,8 +663,11 @@
       function renderResults(groups) {
         const el = document.getElementById("results");
         if (groups.length === 0) {
-          el.innerHTML =
-            '<div class="empty-results">沒有找到符合條件的團<br>試試調整篩選條件</div>';
+          el.innerHTML = `<div class="empty-results">
+            沒有找到符合條件的團<br>試試調整篩選條件
+            <br><br>
+            <a href="https://liff.line.me/2009659299-rbF8C1zz" style="display:inline-block;padding:10px 24px;background:#06C755;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">開一個新團</a>
+          </div>`;
           return;
         }
         el.innerHTML =

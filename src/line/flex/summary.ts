@@ -186,9 +186,9 @@ function buildBubble(g: SummaryGroup): messagingApi.FlexBubble {
           color: "#06C755",
           height: "sm",
           action: {
-            type: "postback",
+            type: "uri",
             label: "加入",
-            data: `action=join&groupId=${g.id}`,
+            uri: `https://liff.line.me/2009659299-kwXd0ja5?join=${g.id}`,
           },
         },
       ],
@@ -232,13 +232,61 @@ export function buildSummaryCards(groups: SummaryGroup[]): messagingApi.FlexMess
     ];
   }
 
+  const titleBubble: messagingApi.FlexBubble = {
+    type: "bubble",
+    size: "kilo",
+    body: {
+      type: "box",
+      layout: "vertical",
+      paddingAll: "20px",
+      justifyContent: "center",
+      contents: [
+        { type: "text", text: "\u{1F4CB}", size: "3xl", align: "center" },
+        {
+          type: "text",
+          text: "開團彙整",
+          weight: "bold",
+          size: "lg",
+          align: "center",
+          margin: "md",
+        },
+        {
+          type: "text",
+          text: `${groups.length} 團開放中`,
+          size: "sm",
+          color: "#888888",
+          align: "center",
+          margin: "sm",
+        },
+        { type: "separator", margin: "lg" },
+        {
+          type: "button",
+          style: "link",
+          height: "sm",
+          margin: "md",
+          action: {
+            type: "uri",
+            label: "搜尋更多",
+            uri: "https://liff.line.me/2009659299-kwXd0ja5",
+          },
+        },
+      ],
+    },
+  };
+
   const messages: messagingApi.FlexMessage[] = [];
   for (let i = 0; i < groups.length; i += 12) {
     const chunk = groups.slice(i, i + 12);
+    let bubbles: messagingApi.FlexBubble[];
+    if (i === 0) {
+      bubbles = [titleBubble, ...chunk.slice(0, 11).map(buildBubble)];
+    } else {
+      bubbles = chunk.map(buildBubble);
+    }
     messages.push({
       type: "flex",
       altText: `開團彙整（${groups.length} 團開放中）`,
-      contents: { type: "carousel", contents: chunk.map(buildBubble) },
+      contents: { type: "carousel", contents: bubbles },
     });
   }
   return messages;

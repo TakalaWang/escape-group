@@ -67,15 +67,59 @@
       .status.err {
         color: #e53e3e;
       }
-      .loading {
+      .loading-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 0;
+      }
+      .spinner {
+        width: 36px;
+        height: 36px;
+        border: 3px solid #e0e0e0;
+        border-top-color: #06c755;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      .loading-text {
+        margin-top: 12px;
         font-size: 14px;
         color: #999;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #1a1a1a;
+          color: #e5e5e5;
+        }
+        .card {
+          background: #2a2a2a;
+          box-shadow: none;
+        }
+        p {
+          color: #777;
+        }
+        .loading-text {
+          color: #666;
+        }
+        .toast {
+          background: #e5e5e5;
+          color: #1a1a1a;
+        }
       }
     </style>
   </head>
   <body>
     <div class="card">
-      <div id="loading" class="loading">載入中...</div>
+      <div id="loading" class="loading-screen">
+        <div class="spinner"></div>
+        <div class="loading-text">載入中</div>
+      </div>
       <div id="main" style="display: none">
         <h1 id="title">分享</h1>
         <p id="desc">選擇聊天室分享開團卡片</p>

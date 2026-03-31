@@ -299,9 +299,9 @@ export function buildGroupCard(input: GroupCardInput): messagingApi.FlexMessage 
           color: "#06C755",
           height: "sm",
           action: {
-            type: "postback",
+            type: "uri",
             label: "加入此團",
-            data: `action=join&groupId=${input.id}`,
+            uri: `https://liff.line.me/2009659299-kwXd0ja5?join=${input.id}`,
           },
         },
       ],

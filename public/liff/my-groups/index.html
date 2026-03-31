@@ -161,11 +161,30 @@
         font-size: 14px;
         line-height: 1.6;
       }
-      .loading {
-        text-align: center;
-        padding: 40px 0;
-        color: #999;
+      .loading-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 0;
+      }
+      .spinner {
+        width: 36px;
+        height: 36px;
+        border: 3px solid #e0e0e0;
+        border-top-color: #06c755;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      .loading-text {
+        margin-top: 12px;
         font-size: 14px;
+        color: #999;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       .toast {
@@ -232,6 +251,45 @@
           transition-duration: 0.01ms !important;
         }
       }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #1a1a1a;
+          color: #e5e5e5;
+        }
+        .group-card {
+          background: #2a2a2a;
+          box-shadow: none;
+        }
+        .gc-info {
+          color: #999;
+        }
+        .gc-members {
+          background: #222;
+          border-top-color: #333;
+        }
+        .member-row {
+          border-bottom-color: #333;
+        }
+        .empty,
+        .no-members,
+        .loading-text {
+          color: #666;
+        }
+        .tab {
+          color: #ccc;
+        }
+        .tab.active {
+          color: #e5e5e5;
+        }
+        .tabs {
+          background: #2a2a2a;
+          border-bottom-color: #333;
+        }
+        .toast {
+          background: #e5e5e5;
+          color: #1a1a1a;
+        }
+      }
     </style>
   </head>
   <body>
@@ -244,7 +302,10 @@
       <div class="tab" data-tab="joined" onclick="switchTab('joined')">我加入的團</div>
     </div>
     <div class="content">
-      <div id="loadingState" class="loading">載入中...</div>
+      <div id="loadingState" class="loading-screen">
+        <div class="spinner"></div>
+        <div class="loading-text">載入中</div>
+      </div>
       <div id="main" style="display: none"></div>
     </div>
     <div class="toast" id="toast"></div>

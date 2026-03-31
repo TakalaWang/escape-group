@@ -270,12 +270,84 @@
         animation: fadeIn 0.3s ease 0.8s both;
       }
 
+      .loading-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 0;
+      }
+      .spinner {
+        width: 36px;
+        height: 36px;
+        border: 3px solid #e0e0e0;
+        border-top-color: #06c755;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      .loading-text {
+        margin-top: 12px;
+        font-size: 14px;
+        color: #999;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
         *::after {
           animation-duration: 0.01ms !important;
           transition-duration: 0.01ms !important;
+        }
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #1a1a1a;
+          color: #e5e5e5;
+        }
+        .section {
+          background: #2a2a2a;
+          box-shadow: none;
+        }
+        .section-title {
+          border-bottom-color: #333;
+        }
+        input,
+        select,
+        textarea {
+          background: #333;
+          border-color: #444;
+          color: #e5e5e5;
+        }
+        input::placeholder,
+        textarea::placeholder {
+          color: #666;
+        }
+        input:focus,
+        select:focus,
+        textarea:focus {
+          background: #3a3a3a;
+          border-color: #06c755;
+        }
+        .hint {
+          color: #777;
+        }
+        label {
+          color: #ccc;
+        }
+        .error {
+          background: #3a1a1a;
+          border-color: #5a2a2a;
+        }
+        .close-link {
+          color: #666;
+        }
+        .toast {
+          background: #e5e5e5;
+          color: #1a1a1a;
         }
       }
     </style>
@@ -583,6 +655,31 @@
           btn.textContent = "開團";
         }
       });
+
+      document.getElementById("maxMembers").addEventListener("change", validateNumbers);
+      document.getElementById("minMembers").addEventListener("change", validateNumbers);
+      document.getElementById("prefilledMembers").addEventListener("change", validateNumbers);
+
+      function validateNumbers() {
+        const min = parseInt(document.getElementById("minMembers").value) || 0;
+        const max = parseInt(document.getElementById("maxMembers").value) || 0;
+        const pre = parseInt(document.getElementById("prefilledMembers").value) || 0;
+
+        const maxEl = document.getElementById("maxMembers");
+        const preEl = document.getElementById("prefilledMembers");
+
+        if (min > 0 && max > 0 && min > max) {
+          maxEl.style.borderColor = "#e53e3e";
+        } else {
+          maxEl.style.borderColor = "";
+        }
+
+        if (pre >= max && max > 0) {
+          preEl.style.borderColor = "#e53e3e";
+        } else {
+          preEl.style.borderColor = "";
+        }
+      }
 
       init();
     </script>
