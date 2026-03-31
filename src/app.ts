@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { eq, or, and, ilike } from "drizzle-orm";
 import { verifySignature } from "./line/verify.js";
 import { handleWebhookEvents } from "./handlers/webhook.js";
 import { validateCreateGroupInput, createGroup } from "./services/group.js";
@@ -7,6 +8,8 @@ import { upsertUserFromLiff } from "./services/user.js";
 import { searchGroups, buildSearchQuery } from "./services/search.js";
 import { buildGroupCard } from "./line/flex/group-card.js";
 import { getLineClient } from "./line/client.js";
+import { db } from "./db/client.js";
+import { subscriptions, users } from "./db/schema.js";
 
 const app = new Hono().basePath("/api");
 
@@ -58,6 +61,55 @@ app.post("/groups", async (c) => {
       } catch (err) {
         console.error("Failed to push announcement:", err);
       }
+    }
+
+    // Notify subscribers
+    try {
+      const matchConditions = [];
+      if (body.location) {
+        matchConditions.push(
+          and(eq(subscriptions.type, "location"), eq(subscriptions.value, body.location))
+        );
+      }
+      if (body.roomName) {
+        matchConditions.push(
+          and(eq(subscriptions.type, "room"), ilike(subscriptions.value, `%${body.roomName}%`))
+        );
+      }
+      if (body.studio) {
+        matchConditions.push(
+          and(eq(subscriptions.type, "studio"), ilike(subscriptions.value, `%${body.studio}%`))
+        );
+      }
+      if (matchConditions.length > 0) {
+        const matchedSubs = await db
+          .select({ lineUserId: users.lineUserId })
+          .from(subscriptions)
+          .innerJoin(users, eq(subscriptions.userId, users.id))
+          .where(or(...matchConditions));
+
+        const lineClient = getLineClient();
+        const notified = new Set<string>();
+        for (const sub of matchedSubs) {
+          if (sub.lineUserId === lineUserId || notified.has(sub.lineUserId)) continue;
+          notified.add(sub.lineUserId);
+          try {
+            await lineClient.pushMessage({
+              to: sub.lineUserId,
+              messages: [
+                {
+                  type: "text",
+                  text: `🔔 新團通知：「${body.roomName}」${body.studio ? ` (${body.studio})` : ""} 正在揪人！`,
+                },
+              ],
+            });
+          } catch (e) {
+            console.error("Failed to notify subscriber:", e);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Subscriber notification failed:", err);
     }
 
     return c.json({ id: group.id, status: "created" }, 201);

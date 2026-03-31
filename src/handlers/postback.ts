@@ -8,12 +8,13 @@ import {
   getGroupsByHost,
   cancelGroup,
 } from "../services/group.js";
-import { searchGroups } from "../services/search.js";
+import { searchGroups, buildSearchQuery } from "../services/search.js";
 import { buildSummaryCard } from "../line/flex/summary.js";
 import { buildMyGroupsCard } from "../line/flex/my-groups.js";
 import { db } from "../db/client.js";
-import { users } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { users, subscriptions } from "../db/schema.js";
+import { eq, and } from "drizzle-orm";
+import { setPendingSearch } from "./message.js";
 
 export async function handlePostback(event: PostbackEvent): Promise<void> {
   const data = new URLSearchParams(event.postback.data);
@@ -77,22 +78,6 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       }
       break;
     }
-    case "search": {
-      const results = await searchGroups({});
-      const summaryGroups = results.map((r) => ({
-        id: r.id,
-        roomName: r.roomName,
-        datetime: r.datetime,
-        maxMembers: r.maxMembers,
-        currentMembers: r.currentMembers,
-      }));
-      const card = buildSummaryCard(summaryGroups);
-      await client.replyMessage({
-        replyToken: event.replyToken,
-        messages: [card],
-      });
-      break;
-    }
     case "my_groups": {
       const user = await upsertUser(userId);
       const myGroups = await getGroupsByHost(user.id);
@@ -118,21 +103,304 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       const groupId = data.get("groupId");
       if (!groupId) return;
       const user = await upsertUser(userId);
-      const result = await leaveGroup(groupId, user.id);
-      if (!result.ok) {
-        const msgs: Record<string, string> = {
-          not_found: "找不到這個團。",
-          not_member: "你不在這個團裡。",
-        };
+      const group = await getGroupById(groupId);
+      if (!group) {
         await client.replyMessage({
           replyToken: event.replyToken,
-          messages: [{ type: "text", text: msgs[result.reason] }],
+          messages: [{ type: "text", text: "找不到這個團。" }],
         });
         return;
       }
+      // Notify host
+      const [host] = await db.select().from(users).where(eq(users.id, group.hostId)).limit(1);
+      if (host) {
+        await client.pushMessage({
+          to: host.lineUserId,
+          messages: [
+            {
+              type: "flex",
+              altText: `${user.displayName} 想退出「${group.roomName}」`,
+              contents: {
+                type: "bubble",
+                body: {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    { type: "text", text: "退團申請", weight: "bold", size: "lg" },
+                    {
+                      type: "text",
+                      text: `${user.displayName} 想退出「${group.roomName}」`,
+                      size: "sm",
+                      margin: "md",
+                      wrap: true,
+                    },
+                  ],
+                },
+                footer: {
+                  type: "box",
+                  layout: "horizontal",
+                  spacing: "sm",
+                  contents: [
+                    {
+                      type: "button",
+                      style: "primary",
+                      color: "#06C755",
+                      height: "sm",
+                      action: {
+                        type: "postback",
+                        label: "同意",
+                        data: `action=approve_leave&groupId=${groupId}&userId=${user.id}`,
+                      },
+                    },
+                    {
+                      type: "button",
+                      style: "secondary",
+                      height: "sm",
+                      action: {
+                        type: "postback",
+                        label: "拒絕",
+                        data: `action=reject_leave&groupId=${groupId}&memberId=${user.lineUserId}`,
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        });
+      }
       await client.replyMessage({
         replyToken: event.replyToken,
-        messages: [{ type: "text", text: "✅ 已退出此團。" }],
+        messages: [{ type: "text", text: "已向團主發送退團申請，請等待回覆。" }],
+      });
+      break;
+    }
+    case "approve_leave": {
+      const groupId = data.get("groupId");
+      const memberUserId = data.get("userId");
+      if (!groupId || !memberUserId) return;
+      const result = await leaveGroup(groupId, memberUserId);
+      const group = await getGroupById(groupId);
+      if (result.ok) {
+        // Notify the member
+        const [member] = await db.select().from(users).where(eq(users.id, memberUserId)).limit(1);
+        if (member) {
+          await client.pushMessage({
+            to: member.lineUserId,
+            messages: [{ type: "text", text: `✅ 團主已同意你退出「${group?.roomName}」。` }],
+          });
+        }
+        await client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: "text", text: "✅ 已同意退團。" }],
+        });
+      }
+      break;
+    }
+    case "reject_leave": {
+      const groupId = data.get("groupId");
+      const memberId = data.get("memberId");
+      if (!groupId || !memberId) return;
+      const group = await getGroupById(groupId);
+      await client.pushMessage({
+        to: memberId,
+        messages: [{ type: "text", text: `❌ 團主拒絕了你退出「${group?.roomName}」的申請。` }],
+      });
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: "已拒絕退團申請。" }],
+      });
+      break;
+    }
+    case "subscribe": {
+      const type = data.get("type"); // "location" or "keyword"
+      const value = data.get("value");
+      if (!type || !value) return;
+      const user = await upsertUser(userId);
+
+      // Check if already subscribed
+      const existing = await db
+        .select()
+        .from(subscriptions)
+        .where(
+          and(
+            eq(subscriptions.userId, user.id),
+            eq(subscriptions.type, type as "room" | "studio" | "location"),
+            eq(subscriptions.value, value)
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        await client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: "text", text: "你已經訂閱過了。" }],
+        });
+        return;
+      }
+
+      await db.insert(subscriptions).values({
+        userId: user.id,
+        type: type as "room" | "studio" | "location",
+        value,
+      });
+
+      const label = type === "location" ? `地區：${value}` : `關鍵字：${value}`;
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: `✅ 已訂閱「${label}」，有新團會通知你。` }],
+      });
+      break;
+    }
+    case "my_subscriptions": {
+      const user = await upsertUser(userId);
+      const subs = await db.select().from(subscriptions).where(eq(subscriptions.userId, user.id));
+
+      if (subs.length === 0) {
+        await client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: "text", text: "你還沒有訂閱。\n\n使用找團功能時可以訂閱特定地區。" }],
+        });
+        return;
+      }
+
+      const lines = subs.map((s) => {
+        const label = s.type === "location" ? `📍 ${s.value}` : `🔍 ${s.value}`;
+        return label;
+      });
+
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: `📋 你的訂閱：\n\n${lines.join("\n")}` }],
+      });
+      break;
+    }
+    case "search": {
+      // If no filters specified, show filter menu
+      const location = data.get("location");
+      const keyword = data.get("keyword");
+
+      if (!location && !keyword && !data.has("all")) {
+        // Show filter options
+        const bubble: any = {
+          type: "bubble",
+          body: {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              { type: "text", text: "🔍 找團", weight: "bold", size: "lg" },
+              { type: "separator", margin: "md" },
+              { type: "text", text: "選擇篩選方式：", size: "sm", margin: "lg", color: "#888888" },
+            ],
+          },
+          footer: {
+            type: "box",
+            layout: "vertical",
+            spacing: "sm",
+            contents: [
+              {
+                type: "button",
+                style: "primary",
+                color: "#06C755",
+                action: { type: "postback", label: "查看全部", data: "action=search&all=1" },
+              },
+              {
+                type: "button",
+                style: "secondary",
+                action: {
+                  type: "postback",
+                  label: "依地區篩選",
+                  data: "action=search_location",
+                },
+              },
+              {
+                type: "button",
+                style: "secondary",
+                action: {
+                  type: "postback",
+                  label: "依關鍵字搜尋",
+                  data: "action=search_keyword",
+                },
+              },
+            ],
+          },
+        };
+        await client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: "flex", altText: "找團篩選", contents: bubble }],
+        });
+        return;
+      }
+
+      // Search with filters
+      const filters: Record<string, string | undefined> = {};
+      if (location) filters.location = location;
+      if (keyword) filters.keyword = keyword;
+
+      const results = await searchGroups(buildSearchQuery(data.has("all") ? {} : filters));
+      const summaryGroups = results.map((r) => ({
+        id: r.id,
+        roomName: r.roomName,
+        datetime: r.datetime,
+        maxMembers: r.maxMembers,
+        currentMembers: r.currentMembers,
+      }));
+      const card = buildSummaryCard(summaryGroups);
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [card],
+      });
+      break;
+    }
+    case "search_location": {
+      const locations = [
+        ["taipei", "台北"],
+        ["new_taipei", "新北"],
+        ["taoyuan", "桃園"],
+        ["hsinchu", "新竹"],
+        ["taichung", "台中"],
+        ["tainan", "台南"],
+        ["kaohsiung", "高雄"],
+        ["yilan", "宜蘭"],
+        ["hualien", "花蓮"],
+      ];
+
+      const buttons = locations.map(([value, label]) => ({
+        type: "button" as const,
+        style: "secondary" as const,
+        height: "sm" as const,
+        action: { type: "postback" as const, label, data: `action=search&location=${value}` },
+      }));
+
+      const bubble: any = {
+        type: "bubble",
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            { type: "text", text: "📍 選擇地區", weight: "bold", size: "lg" },
+            { type: "separator", margin: "md" },
+          ],
+        },
+        footer: {
+          type: "box",
+          layout: "vertical",
+          spacing: "xs",
+          contents: buttons,
+        },
+      };
+
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "flex", altText: "選擇地區", contents: bubble }],
+      });
+      break;
+    }
+    case "search_keyword": {
+      setPendingSearch(userId);
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: "請輸入搜尋關鍵字（密室名稱或工作室）：" }],
       });
       break;
     }

@@ -4,6 +4,12 @@ import { db } from "../db/client.js";
 import { groups, groupMembers, users } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 
+const pendingSearchKeyword = new Map<string, boolean>();
+
+export function setPendingSearch(userId: string) {
+  pendingSearchKeyword.set(userId, true);
+}
+
 export async function handleMessage(event: MessageEvent): Promise<void> {
   if (event.message.type !== "text") return;
   if (event.source.type !== "user") return;
@@ -12,13 +18,35 @@ export async function handleMessage(event: MessageEvent): Promise<void> {
   if (!userId) return;
 
   const text = (event.message as { type: "text"; text: string }).text;
+  const client = getLineClient();
+
+  // Check if user is providing a search keyword
+  if (pendingSearchKeyword.has(userId)) {
+    pendingSearchKeyword.delete(userId);
+    const { searchGroups, buildSearchQuery } = await import("../services/search.js");
+    const { buildSummaryCard } = await import("../line/flex/summary.js");
+
+    const results = await searchGroups(buildSearchQuery({ keyword: text }));
+    const summaryGroups = results.map((r) => ({
+      id: r.id,
+      roomName: r.roomName,
+      datetime: r.datetime,
+      maxMembers: r.maxMembers,
+      currentMembers: r.currentMembers,
+    }));
+    const card = buildSummaryCard(summaryGroups);
+    await client.replyMessage({
+      replyToken: event.replyToken,
+      messages: [card],
+    });
+    return;
+  }
 
   // Check if it's a LINE group invite link
   const inviteLinkMatch = text.match(/https?:\/\/line\.me\/(?:R\/)?ti\/g\/[A-Za-z0-9_-]+/);
   if (!inviteLinkMatch) return;
 
   const inviteLink = inviteLinkMatch[0];
-  const client = getLineClient();
 
   // Find a full group hosted by this user that doesn't have a lineGroupId yet
   const [user] = await db.select().from(users).where(eq(users.lineUserId, userId)).limit(1);
