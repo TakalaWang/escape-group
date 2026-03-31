@@ -234,6 +234,7 @@ app.get("/my-joined-groups", async (c) => {
       studio: groupsTable.studio,
       location: groupsTable.location,
       datetime: groupsTable.datetime,
+      duration: groupsTable.duration,
       maxMembers: groupsTable.maxMembers,
       prefilledMembers: groupsTable.prefilledMembers,
       price: groupsTable.price,

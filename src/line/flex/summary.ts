@@ -6,6 +6,7 @@ type SummaryGroup = {
   studio?: string | null;
   location?: string | null;
   datetime: Date | null;
+  duration?: number | null;
   minMembers?: number | null;
   maxMembers: number;
   currentMembers: number;
@@ -73,6 +74,18 @@ function buildBubble(g: SummaryGroup): messagingApi.FlexBubble {
       paddingStart: "8px",
       paddingEnd: "8px",
       contents: [{ type: "text", text: `$${g.price}`, size: "xxs", color: "#16A34A" }],
+    });
+  }
+  if (g.duration) {
+    tags.push({
+      type: "box",
+      layout: "vertical",
+      backgroundColor: "#FEF3C7",
+      cornerRadius: "4px",
+      paddingAll: "4px",
+      paddingStart: "8px",
+      paddingEnd: "8px",
+      contents: [{ type: "text", text: `${g.duration}分`, size: "xxs", color: "#92400E" }],
     });
   }
 

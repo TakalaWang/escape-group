@@ -46,6 +46,7 @@ export async function searchGroups(filters: SearchFilters) {
       studio: groups.studio,
       location: groups.location,
       datetime: groups.datetime,
+      duration: groups.duration,
       maxMembers: groups.maxMembers,
       prefilledMembers: groups.prefilledMembers,
       status: groups.status,

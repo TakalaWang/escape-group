@@ -395,7 +395,7 @@
       let uid = null;
       let selectedCities = new Set();
       let joinedIds = new Set();
-      let busyDates = new Set();
+      let busyRanges = [];
 
       async function init() {
         await liff.init({ liffId: LIFF_ID });
@@ -481,11 +481,12 @@
           const joinedRes = await fetch(`${API}/my-joined-groups?userId=${uid}`);
           const joinedGroups = await joinedRes.json();
           joinedIds = new Set(joinedGroups.map((g) => g.id));
-          busyDates = new Set();
+          busyRanges = [];
           joinedGroups.forEach((g) => {
             if (g.datetime) {
-              const d = new Date(g.datetime);
-              busyDates.add(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+              const start = new Date(g.datetime).getTime();
+              const dur = (g.duration || 120) * 60 * 1000;
+              busyRanges.push({ start, end: start + dur });
             }
           });
         } catch (e) {
@@ -493,6 +494,14 @@
         }
 
         renderResults(groups);
+      }
+
+      function hasConflict(datetime, duration) {
+        if (!datetime) return false;
+        const start = new Date(datetime).getTime();
+        const dur = (duration || 120) * 60 * 1000;
+        const end = start + dur;
+        return busyRanges.some((r) => start < r.end && end > r.start);
       }
 
       function fmtDate(d) {
@@ -517,15 +526,11 @@
               if (g.location && ALL_LOC[g.location]) tags.push(ALL_LOC[g.location]);
               if (g.datetime) tags.push(fmtDate(g.datetime));
               if (g.price) tags.push(`$${g.price}/人`);
+              if (g.duration) tags.push(`${g.duration}分鐘`);
               if (g.hostName) tags.push(`團主：${g.hostName}`);
 
               const isJoined = joinedIds.has(g.id);
-              const isConflict =
-                g.datetime &&
-                (() => {
-                  const d = new Date(g.datetime);
-                  return busyDates.has(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
-                })();
+              const isConflict = hasConflict(g.datetime, g.duration);
 
               return `<div class="result-card">
             <div class="rc-top">
@@ -544,20 +549,16 @@
                 <span class="rc-count">${g.currentMembers}/${g.maxMembers} 人</span>
                 <span class="rc-remaining${remaining <= 2 ? " urgent" : ""}"> · 還差 ${remaining} 人</span>
               </div>
-              ${isJoined ? '<button class="join-btn" disabled>已加入</button>' : `<button class="join-btn" onclick="joinGroup('${g.id}',this,'${g.datetime || ""}')">加入</button>`}
+              ${isJoined ? '<button class="join-btn" disabled>已加入</button>' : `<button class="join-btn" onclick="joinGroup('${g.id}',this,'${g.datetime || ""}',${g.duration || 0})">加入</button>`}
             </div>
           </div>`;
             })
             .join("");
       }
 
-      async function joinGroup(groupId, btn, datetime) {
-        if (datetime) {
-          const d = new Date(datetime);
-          const dateKey = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-          if (busyDates.has(dateKey)) {
-            if (!confirm("注意：你在這天已經有其他團了，確定要加入嗎？")) return;
-          }
+      async function joinGroup(groupId, btn, datetime, duration) {
+        if (hasConflict(datetime, duration)) {
+          if (!confirm("注意：這個團跟你已加入的團時間重疊，確定要加入嗎？")) return;
         }
         btn.disabled = true;
         btn.textContent = "加入中...";

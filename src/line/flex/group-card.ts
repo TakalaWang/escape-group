@@ -29,6 +29,7 @@ type GroupCardInput = {
   studio: string | null;
   location: string | null;
   datetime: Date | null;
+  duration: number | null;
   minMembers: number | null;
   maxMembers: number;
   currentMembers: number;
@@ -71,6 +72,61 @@ export function buildGroupCard(input: GroupCardInput): messagingApi.FlexMessage 
         {
           type: "text",
           text: formatDate(input.datetime),
+          size: "sm",
+          color: "#333333",
+          flex: 1,
+          align: "end",
+        },
+      ],
+    });
+  }
+
+  if (input.datetime && input.duration) {
+    const endTime = new Date(input.datetime.getTime() + input.duration * 60 * 1000);
+    const endH = endTime.getHours().toString().padStart(2, "0");
+    const endM = endTime.getMinutes().toString().padStart(2, "0");
+    infoRows.push({
+      type: "box",
+      layout: "baseline",
+      spacing: "sm",
+      margin: "sm",
+      contents: [
+        {
+          type: "text",
+          text: "時長",
+          size: "xs",
+          color: "#aaaaaa",
+          flex: 0,
+          weight: "bold",
+        },
+        {
+          type: "text",
+          text: `${input.duration}分鐘（~${endH}:${endM}）`,
+          size: "sm",
+          color: "#333333",
+          flex: 1,
+          align: "end",
+        },
+      ],
+    });
+  } else if (input.duration) {
+    infoRows.push({
+      type: "box",
+      layout: "baseline",
+      spacing: "sm",
+      margin: "sm",
+      contents: [
+        {
+          type: "text",
+          text: "時長",
+          size: "xs",
+          color: "#aaaaaa",
+          flex: 0,
+          weight: "bold",
+        },
+        {
+          type: "text",
+          text: `${input.duration} 分鐘`,
           size: "sm",
           color: "#333333",
           flex: 1,
