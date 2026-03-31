@@ -29,6 +29,7 @@ type GroupCardInput = {
   studio: string | null;
   location: string | null;
   datetime: Date | null;
+  minMembers: number | null;
   maxMembers: number;
   currentMembers: number;
   hostName: string;
@@ -103,7 +104,7 @@ export function buildGroupCard(input: GroupCardInput): messagingApi.FlexMessage 
         { type: "text", text: "👥", size: "sm", flex: 0 },
         {
           type: "text",
-          text: `${input.currentMembers}/${input.maxMembers} 人（還差 ${remaining} 人）`,
+          text: `${input.currentMembers}/${input.maxMembers} 人（還差 ${remaining} 人）${input.minMembers ? ` · ${input.minMembers}人成團` : ""}`,
           size: "sm",
           margin: "sm",
         },

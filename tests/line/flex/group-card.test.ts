@@ -8,9 +8,11 @@ describe("buildGroupCard", () => {
     studio: "密室逃脫工作室",
     location: "taipei" as const,
     datetime: new Date("2026-04-05T14:00:00+08:00"),
+    minMembers: 4,
     maxMembers: 6,
     currentMembers: 3,
     hostName: "小明",
+    price: null,
   };
 
   it("returns a valid Flex Message object", () => {

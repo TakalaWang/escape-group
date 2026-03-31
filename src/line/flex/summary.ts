@@ -6,6 +6,7 @@ type SummaryGroup = {
   studio?: string | null;
   location?: string | null;
   datetime: Date | null;
+  minMembers?: number | null;
   maxMembers: number;
   currentMembers: number;
   hostName?: string;
@@ -70,7 +71,7 @@ function buildBubble(g: SummaryGroup): messagingApi.FlexBubble {
       { type: "text", text: "👥", size: "sm", flex: 0 },
       {
         type: "text",
-        text: `${g.currentMembers}/${g.maxMembers} 人（還差 ${remaining} 人）`,
+        text: `${g.currentMembers}/${g.maxMembers} 人（還差 ${remaining} 人）${g.minMembers ? ` · ${g.minMembers}人成團` : ""}`,
         size: "sm",
         margin: "sm",
       },

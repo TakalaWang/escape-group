@@ -48,6 +48,7 @@ export const groups = pgTable("groups", {
   studio: text("studio"),
   location: locationEnum("location"),
   datetime: timestamp("datetime", { withTimezone: true }),
+  minMembers: integer("min_members"), // 最少成團人數
   maxMembers: integer("max_members").notNull(),
   prefilledMembers: integer("prefilled_members").notNull().default(1),
   price: integer("price"), // 每人費用

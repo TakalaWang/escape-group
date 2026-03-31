@@ -16,6 +16,7 @@ type CreateGroupInput = {
     | "yilan"
     | "hualien";
   datetime?: string;
+  minMembers?: number;
   maxMembers: number;
   prefilledMembers?: number;
   price?: number;
@@ -46,6 +47,7 @@ export async function createGroup(hostId: string, input: CreateGroupInput) {
       studio: input.studio?.trim() || null,
       location: input.location ?? null,
       datetime: input.datetime ? new Date(input.datetime) : null,
+      minMembers: input.minMembers ?? null,
       maxMembers: input.maxMembers,
       prefilledMembers: input.prefilledMembers ?? 1,
       price: input.price ?? null,
