@@ -70,3 +70,30 @@ export async function leaveGroup(groupId: string, userId: string): Promise<Leave
 
   return { ok: true };
 }
+
+export async function kickMember(
+  groupId: string,
+  memberId: string,
+  hostId: string
+): Promise<{ ok: boolean; reason?: string }> {
+  const group = await db.select().from(groups).where(eq(groups.id, groupId)).limit(1);
+  if (group.length === 0) return { ok: false, reason: "not_found" };
+  if (group[0].hostId !== hostId) return { ok: false, reason: "not_host" };
+
+  const existing = await db
+    .select()
+    .from(groupMembers)
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, memberId)))
+    .limit(1);
+  if (existing.length === 0) return { ok: false, reason: "not_member" };
+
+  await db
+    .delete(groupMembers)
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, memberId)));
+
+  if (group[0].status === "full") {
+    await db.update(groups).set({ status: "open" }).where(eq(groups.id, groupId));
+  }
+
+  return { ok: true };
+}

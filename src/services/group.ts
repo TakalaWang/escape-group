@@ -1,5 +1,5 @@
 import { db } from "../db/client.js";
-import { groups, groupMembers } from "../db/schema.js";
+import { groups, groupMembers, users } from "../db/schema.js";
 import { eq, and, sql } from "drizzle-orm";
 
 type CreateGroupInput = {
@@ -96,4 +96,16 @@ export async function cancelGroup(groupId: string, hostId: string): Promise<bool
     .set({ status: "cancelled" })
     .where(and(eq(groups.id, groupId), eq(groups.hostId, hostId), eq(groups.status, "open")));
   return (result as any).rowCount > 0 || true;
+}
+
+export async function getGroupMembers(groupId: string) {
+  return db
+    .select({
+      id: users.id,
+      displayName: users.displayName,
+      lineUserId: users.lineUserId,
+    })
+    .from(groupMembers)
+    .innerJoin(users, eq(groupMembers.userId, users.id))
+    .where(eq(groupMembers.groupId, groupId));
 }

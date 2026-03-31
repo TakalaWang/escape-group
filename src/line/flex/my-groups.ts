@@ -80,13 +80,23 @@ export function buildMyGroupsCard(groups: MyGroup[]): messagingApi.FlexMessage {
       });
     }
 
-    if (g.status === "open") {
+    if (g.status === "open" || g.status === "full") {
       bodyContents.push({
         type: "box",
         layout: "horizontal",
         margin: "sm",
         spacing: "sm",
         contents: [
+          {
+            type: "button",
+            style: "secondary",
+            height: "sm",
+            action: {
+              type: "postback",
+              label: "管理成員",
+              data: `action=manage_members&groupId=${g.id}`,
+            },
+          },
           {
             type: "button",
             style: "secondary",

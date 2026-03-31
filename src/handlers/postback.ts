@@ -1,12 +1,13 @@
 import type { PostbackEvent } from "@line/bot-sdk";
 import { getLineClient } from "../line/client.js";
 import { upsertUser } from "../services/user.js";
-import { joinGroup, leaveGroup } from "../services/member.js";
+import { joinGroup, leaveGroup, kickMember } from "../services/member.js";
 import {
   getGroupById,
   getGroupMemberCount,
   getGroupsByHost,
   cancelGroup,
+  getGroupMembers,
 } from "../services/group.js";
 import { searchGroups, buildSearchQuery } from "../services/search.js";
 import { buildSummaryCard } from "../line/flex/summary.js";
@@ -272,6 +273,98 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       await client.replyMessage({
         replyToken: event.replyToken,
         messages: [{ type: "text", text: `📋 你的訂閱：\n\n${lines.join("\n")}` }],
+      });
+      break;
+    }
+    case "manage_members": {
+      const groupId = data.get("groupId");
+      if (!groupId) return;
+      const group = await getGroupById(groupId);
+      if (!group) return;
+      const members = await getGroupMembers(groupId);
+
+      if (members.length === 0) {
+        await client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: "text", text: "目前沒有成員加入。" }],
+        });
+        return;
+      }
+
+      const memberButtons = members.map((m) => ({
+        type: "box" as const,
+        layout: "horizontal" as const,
+        margin: "md" as const,
+        contents: [
+          { type: "text" as const, text: m.displayName, size: "sm" as const, flex: 3 },
+          {
+            type: "button" as const,
+            style: "secondary" as const,
+            height: "sm" as const,
+            flex: 2,
+            action: {
+              type: "postback" as const,
+              label: "踢出",
+              data: `action=kick&groupId=${groupId}&memberId=${m.id}`,
+            },
+          },
+        ],
+      }));
+
+      const bubble: any = {
+        type: "bubble",
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            { type: "text", text: `👥 ${group.roomName}`, weight: "bold", size: "lg" },
+            {
+              type: "text",
+              text: `成員管理（${members.length} 人）`,
+              size: "xs",
+              color: "#888888",
+              margin: "sm",
+            },
+            { type: "separator", margin: "md" },
+            ...memberButtons,
+          ],
+        },
+      };
+
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "flex", altText: "成員管理", contents: bubble }],
+      });
+      break;
+    }
+    case "kick": {
+      const groupId = data.get("groupId");
+      const memberId = data.get("memberId");
+      if (!groupId || !memberId) return;
+      const user = await upsertUser(userId);
+      const result = await kickMember(groupId, memberId, user.id);
+      if (!result.ok) {
+        await client.replyMessage({
+          replyToken: event.replyToken,
+          messages: [{ type: "text", text: "操作失敗：" + (result.reason || "unknown") }],
+        });
+        return;
+      }
+      const group = await getGroupById(groupId);
+      const [kicked] = await db.select().from(users).where(eq(users.id, memberId)).limit(1);
+      if (kicked) {
+        try {
+          await client.pushMessage({
+            to: kicked.lineUserId,
+            messages: [{ type: "text", text: `你已被移出「${group?.roomName}」。` }],
+          });
+        } catch (e) {
+          console.error("Failed to notify kicked member:", e);
+        }
+      }
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [{ type: "text", text: `✅ 已將 ${kicked?.displayName || "成員"} 移出。` }],
       });
       break;
     }
