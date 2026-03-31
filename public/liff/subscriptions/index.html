@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>訂閱設定</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC", sans-serif;
+        background: #f5f6f8;
+        color: #1a1a1a;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        overscroll-behavior: contain;
+      }
+      .header {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        padding: 24px 20px 20px;
+        text-align: center;
+        color: white;
+      }
+      .header h1 {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+      .header p {
+        font-size: 13px;
+        opacity: 0.85;
+        margin-top: 4px;
+      }
+
+      .content {
+        padding: 16px;
+      }
+
+      .section {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #8b5cf6;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .sub-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #f5f5f5;
+      }
+      .sub-item:last-child {
+        border-bottom: none;
+      }
+      .sub-item .label {
+        font-size: 14px;
+      }
+      .sub-item .type-badge {
+        display: inline-block;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-right: 6px;
+        font-weight: 600;
+      }
+      .type-location {
+        background: #dbeafe;
+        color: #1d4ed8;
+      }
+      .type-keyword {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      .type-price {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .delete-btn {
+        background: none;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 12px;
+        color: #999;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .delete-btn:active {
+        background: #fef2f2;
+        border-color: #fca5a5;
+        color: #e53e3e;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 20px 0;
+        color: #999;
+        font-size: 14px;
+      }
+
+      .add-section {
+        margin-top: 8px;
+      }
+      .add-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 8px;
+      }
+      .add-type-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 8px;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        font-size: 13px;
+        font-weight: 600;
+        color: #666;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+      }
+      .tab-btn.active {
+        border-color: #8b5cf6;
+        color: #8b5cf6;
+        background: #f5f3ff;
+      }
+      .tab-btn:active {
+        transform: scale(0.97);
+      }
+
+      .add-form {
+        display: none;
+      }
+      .add-form.show {
+        display: block;
+      }
+
+      .location-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .location-btn {
+        padding: 10px 4px;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        font-size: 13px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .location-btn:active {
+        transform: scale(0.95);
+      }
+      .location-btn.subscribed {
+        border-color: #8b5cf6;
+        background: #f5f3ff;
+        color: #8b5cf6;
+      }
+
+      .region-label {
+        font-size: 11px;
+        color: #999;
+        font-weight: 600;
+        margin: 8px 0 4px;
+        grid-column: 1 / -1;
+      }
+
+      .input-row {
+        display: flex;
+        gap: 8px;
+      }
+      .input-row input {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 15px;
+        background: #fafafa;
+        -webkit-appearance: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+      .input-row input:focus {
+        outline: none;
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        background: white;
+      }
+      .input-row input::placeholder {
+        color: #c0c0c0;
+      }
+      .add-btn {
+        padding: 10px 16px;
+        background: #8b5cf6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: opacity 0.2s;
+      }
+      .add-btn:active {
+        opacity: 0.8;
+      }
+      .add-btn:disabled {
+        background: #ccc;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #1a1a1a;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        opacity: 0;
+        transition: all 0.3s;
+        z-index: 50;
+        pointer-events: none;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px 0;
+        color: #999;
+        font-size: 14px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>訂閱設定</h1>
+      <p>有符合條件的新團時會自動通知你</p>
+    </div>
+
+    <div class="content">
+      <div id="loadingState" class="loading">載入中...</div>
+
+      <div id="mainContent" style="display: none">
+        <!-- Current subscriptions -->
+        <div class="section">
+          <div class="section-title">我的訂閱</div>
+          <div id="subList"></div>
+        </div>
+
+        <!-- Add new -->
+        <div class="section">
+          <div class="section-title">新增訂閱</div>
+          <div class="add-type-tabs">
+            <div class="tab-btn active" data-type="location">地區</div>
+            <div class="tab-btn" data-type="keyword">關鍵字</div>
+            <div class="tab-btn" data-type="price">價格</div>
+          </div>
+
+          <div id="form-location" class="add-form show">
+            <div class="location-grid" id="locationGrid"></div>
+          </div>
+
+          <div id="form-keyword" class="add-form">
+            <div class="input-row">
+              <input type="text" id="keywordInput" placeholder="密室名稱或工作室" />
+              <button class="add-btn" id="addKeywordBtn">新增</button>
+            </div>
+          </div>
+
+          <div id="form-price" class="add-form">
+            <div class="input-row">
+              <input
+                type="number"
+                id="priceInput"
+                inputmode="numeric"
+                placeholder="價格上限（元）"
+              />
+              <button class="add-btn" id="addPriceBtn">設定</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+      const LIFF_ID = "2009659299-rbF8C1zz";
+      const API_BASE = "https://escape-group.vercel.app/api";
+      const LOCATIONS = {
+        北部: {
+          keelung: "基隆",
+          taipei: "台北",
+          new_taipei: "新北",
+          taoyuan: "桃園",
+          hsinchu: "新竹",
+          miaoli: "苗栗",
+        },
+        中部: {
+          taichung: "台中",
+          changhua: "彰化",
+          nantou: "南投",
+          yunlin: "雲林",
+          chiayi: "嘉義",
+        },
+        南部: { tainan: "台南", kaohsiung: "高雄", pingtung: "屏東" },
+        東部: { yilan: "宜蘭", hualien: "花蓮", taitung: "台東" },
+        離島: { penghu: "澎湖", kinmen: "金門", matsu: "馬祖" },
+      };
+
+      let userId = null;
+      let displayName = null;
+      let currentSubs = [];
+
+      async function init() {
+        try {
+          await liff.init({ liffId: LIFF_ID });
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+          const profile = await liff.getProfile();
+          userId = profile.userId;
+          displayName = profile.displayName;
+          await loadSubscriptions();
+          renderLocationGrid();
+          setupTabs();
+          setupAddButtons();
+          document.getElementById("loadingState").style.display = "none";
+          document.getElementById("mainContent").style.display = "block";
+        } catch (e) {
+          document.getElementById("loadingState").textContent = "載入失敗：" + e.message;
+        }
+      }
+
+      async function loadSubscriptions() {
+        const res = await fetch(`${API_BASE}/subscriptions?userId=${userId}`);
+        currentSubs = await res.json();
+        renderSubList();
+      }
+
+      function renderSubList() {
+        const el = document.getElementById("subList");
+        if (currentSubs.length === 0) {
+          el.innerHTML =
+            '<div class="empty-state">還沒有訂閱<br>在下方新增條件，有新團會通知你</div>';
+          return;
+        }
+        el.innerHTML = currentSubs
+          .map((s) => {
+            let typeClass, typeLabel, valueLabel;
+            if (s.type === "location") {
+              typeClass = "type-location";
+              typeLabel = "地區";
+              valueLabel =
+                Object.values(LOCATIONS).reduce((acc, r) => ({ ...acc, ...r }), {})[s.value] ||
+                s.value;
+            } else if (s.type === "keyword") {
+              typeClass = "type-keyword";
+              typeLabel = "關鍵字";
+              valueLabel = s.value;
+            } else {
+              typeClass = "type-price";
+              typeLabel = "價格";
+              valueLabel = s.value + " 元以下";
+            }
+            return `<div class="sub-item">
+          <span class="label"><span class="type-badge ${typeClass}">${typeLabel}</span>${valueLabel}</span>
+          <button class="delete-btn" onclick="deleteSub('${s.id}')">刪除</button>
+        </div>`;
+          })
+          .join("");
+        updateLocationGrid();
+      }
+
+      function renderLocationGrid() {
+        const grid = document.getElementById("locationGrid");
+        let html = "";
+        for (const [region, cities] of Object.entries(LOCATIONS)) {
+          html += `<div class="region-label">${region}</div>`;
+          for (const [value, label] of Object.entries(cities)) {
+            html += `<div class="location-btn" data-value="${value}" onclick="toggleLocation('${value}')">${label}</div>`;
+          }
+        }
+        grid.innerHTML = html;
+      }
+
+      function updateLocationGrid() {
+        const subbed = new Set(
+          currentSubs.filter((s) => s.type === "location").map((s) => s.value)
+        );
+        document.querySelectorAll(".location-btn").forEach((btn) => {
+          btn.classList.toggle("subscribed", subbed.has(btn.dataset.value));
+        });
+      }
+
+      async function toggleLocation(value) {
+        const existing = currentSubs.find((s) => s.type === "location" && s.value === value);
+        if (existing) {
+          await deleteSub(existing.id);
+        } else {
+          await addSub("location", value);
+        }
+      }
+
+      async function addSub(type, value) {
+        try {
+          const res = await fetch(`${API_BASE}/subscriptions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lineUserId: userId, displayName, type, value }),
+          });
+          if (res.status === 409) {
+            showToast("已經訂閱過了");
+            return;
+          }
+          if (!res.ok) {
+            const d = await res.json();
+            showToast(d.error || "新增失敗");
+            return;
+          }
+          await loadSubscriptions();
+          showToast("已新增訂閱");
+        } catch (e) {
+          showToast("新增失敗");
+        }
+      }
+
+      async function deleteSub(id) {
+        try {
+          await fetch(`${API_BASE}/subscriptions/${id}`, { method: "DELETE" });
+          await loadSubscriptions();
+          showToast("已取消訂閱");
+        } catch (e) {
+          showToast("刪除失敗");
+        }
+      }
+
+      function setupTabs() {
+        document.querySelectorAll(".tab-btn").forEach((tab) => {
+          tab.addEventListener("click", () => {
+            document.querySelectorAll(".tab-btn").forEach((t) => t.classList.remove("active"));
+            document.querySelectorAll(".add-form").forEach((f) => f.classList.remove("show"));
+            tab.classList.add("active");
+            document.getElementById("form-" + tab.dataset.type).classList.add("show");
+          });
+        });
+      }
+
+      function setupAddButtons() {
+        document.getElementById("addKeywordBtn").addEventListener("click", async () => {
+          const input = document.getElementById("keywordInput");
+          const v = input.value.trim();
+          if (!v) return;
+          await addSub("keyword", v);
+          input.value = "";
+        });
+        document.getElementById("addPriceBtn").addEventListener("click", async () => {
+          const input = document.getElementById("priceInput");
+          const v = parseInt(input.value);
+          if (isNaN(v) || v <= 0) {
+            showToast("請輸入有效金額");
+            return;
+          }
+          await addSub("price", String(v));
+          input.value = "";
+        });
+      }
+
+      function showToast(msg) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.classList.add("show");
+        setTimeout(() => el.classList.remove("show"), 2000);
+      }
+
+      init();
+    </script>
+  </body>
+</html>

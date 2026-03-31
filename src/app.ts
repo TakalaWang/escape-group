@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { verifySignature } from "./line/verify.js";
 import { handleWebhookEvents } from "./handlers/webhook.js";
 import { validateCreateGroupInput, createGroup } from "./services/group.js";
@@ -14,6 +14,8 @@ import { subscriptions, users } from "./db/schema.js";
 const app = new Hono().basePath("/api");
 
 app.use("/groups", cors());
+app.use("/subscriptions/*", cors());
+app.use("/subscriptions", cors());
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
@@ -132,6 +134,67 @@ app.get("/groups", async (c) => {
   const filters = buildSearchQuery(params);
   const results = await searchGroups(filters);
   return c.json(results);
+});
+
+// Get user's subscriptions
+app.get("/subscriptions", async (c) => {
+  const lineUserId = c.req.query("userId");
+  if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+
+  const [user] = await db.select().from(users).where(eq(users.lineUserId, lineUserId)).limit(1);
+  if (!user) return c.json([]);
+
+  const subs = await db.select().from(subscriptions).where(eq(subscriptions.userId, user.id));
+  return c.json(subs);
+});
+
+// Add subscription
+app.post("/subscriptions", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { lineUserId, type, value } = body;
+    if (!lineUserId || !type || !value) return c.json({ error: "Missing fields" }, 400);
+
+    const { upsertUserFromLiff } = await import("./services/user.js");
+    const user = await upsertUserFromLiff(lineUserId, body.displayName || "Unknown");
+
+    // Check duplicate
+    const existing = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          eq(subscriptions.userId, user.id),
+          eq(subscriptions.type, type),
+          eq(subscriptions.value, value)
+        )
+      )
+      .limit(1);
+    if (existing.length > 0) return c.json({ error: "Already subscribed" }, 409);
+
+    // For price type, replace existing
+    if (type === "price") {
+      await db
+        .delete(subscriptions)
+        .where(and(eq(subscriptions.userId, user.id), eq(subscriptions.type, "price")));
+    }
+
+    const [sub] = await db
+      .insert(subscriptions)
+      .values({ userId: user.id, type, value })
+      .returning();
+    return c.json(sub, 201);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return c.json({ error: message }, 500);
+  }
+});
+
+// Delete subscription
+app.delete("/subscriptions/:id", async (c) => {
+  const id = c.req.param("id");
+  await db.delete(subscriptions).where(eq(subscriptions.id, id));
+  return c.json({ status: "ok" });
 });
 
 export default app;
