@@ -22,6 +22,15 @@ export async function upsertUser(lineUserId: string) {
   return user;
 }
 
+export async function upsertUserFromLiff(lineUserId: string, displayName: string) {
+  const existing = await db.select().from(users).where(eq(users.lineUserId, lineUserId)).limit(1);
+  if (existing.length > 0) return existing[0];
+
+  const [user] = await db.insert(users).values({ lineUserId, displayName }).returning();
+
+  return user;
+}
+
 export async function getUserByLineId(lineUserId: string) {
   const result = await db.select().from(users).where(eq(users.lineUserId, lineUserId)).limit(1);
   return result[0] ?? null;

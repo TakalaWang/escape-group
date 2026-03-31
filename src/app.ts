@@ -3,8 +3,7 @@ import { cors } from "hono/cors";
 import { verifySignature } from "./line/verify.js";
 import { handleWebhookEvents } from "./handlers/webhook.js";
 import { validateCreateGroupInput, createGroup } from "./services/group.js";
-import { upsertUser } from "./services/user.js";
-import { isGroupMember } from "./services/access.js";
+import { upsertUserFromLiff } from "./services/user.js";
 import { searchGroups, buildSearchQuery } from "./services/search.js";
 import { buildGroupCard } from "./line/flex/group-card.js";
 import { getLineClient } from "./line/client.js";
@@ -37,26 +36,17 @@ app.post("/groups", async (c) => {
   try {
     const body = await c.req.json();
     const lineUserId = body.lineUserId as string;
+    const displayName = body.displayName as string;
     if (!lineUserId) return c.json({ error: "Missing lineUserId" }, 400);
-
-    const lineGroupId = process.env.LINE_GROUP_ID;
-    if (lineGroupId) {
-      try {
-        if (!(await isGroupMember(lineGroupId, lineUserId))) {
-          return c.json({ error: "Not a group member" }, 403);
-        }
-      } catch (err) {
-        console.error("Access check failed, skipping:", err);
-      }
-    }
 
     const validation = validateCreateGroupInput(body);
     if (!validation.ok) return c.json({ error: validation.error }, 400);
 
-    const user = await upsertUser(lineUserId);
+    const user = await upsertUserFromLiff(lineUserId, displayName || "Unknown");
     const group = await createGroup(user.id, body);
 
-    if (lineGroupId) {
+    const groupChatId = process.env.LINE_GROUP_ID;
+    if (groupChatId) {
       try {
         const card = buildGroupCard({
           ...group,
@@ -64,7 +54,7 @@ app.post("/groups", async (c) => {
           currentMembers: group.prefilledMembers,
         });
         const client = getLineClient();
-        await client.pushMessage({ to: lineGroupId, messages: [card] });
+        await client.pushMessage({ to: groupChatId, messages: [card] });
       } catch (err) {
         console.error("Failed to push announcement:", err);
       }
