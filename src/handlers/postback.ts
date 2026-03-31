@@ -68,6 +68,24 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
         ],
       });
 
+      // Notify host of new member
+      try {
+        const [host] = await db.select().from(users).where(eq(users.id, group!.hostId)).limit(1);
+        if (host && !result.groupFull) {
+          await client.pushMessage({
+            to: host.lineUserId,
+            messages: [
+              {
+                type: "text",
+                text: `有人加入你的團「${group?.roomName}」！目前 ${current}/${group?.maxMembers} 人。`,
+              },
+            ],
+          });
+        }
+      } catch (e) {
+        console.error("Failed to notify host:", e);
+      }
+
       if (result.groupFull && group) {
         const [host] = await db.select().from(users).where(eq(users.id, group.hostId)).limit(1);
         if (host) {

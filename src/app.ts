@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { verifySignature } from "./line/verify.js";
 import { handleWebhookEvents } from "./handlers/webhook.js";
 import { validateCreateGroupInput, createGroup } from "./services/group.js";
@@ -9,7 +9,7 @@ import { searchGroups, buildSearchQuery } from "./services/search.js";
 import { buildGroupCard } from "./line/flex/group-card.js";
 import { getLineClient } from "./line/client.js";
 import { db } from "./db/client.js";
-import { subscriptions, users } from "./db/schema.js";
+import { groupMembers, groups as groupsTable, subscriptions, users } from "./db/schema.js";
 
 const app = new Hono().basePath("/api");
 
@@ -18,6 +18,7 @@ app.use("/groups/*", cors());
 app.use("/my-groups", cors());
 app.use("/subscriptions/*", cors());
 app.use("/subscriptions", cors());
+app.use("/my-joined-groups", cors());
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
@@ -218,6 +219,48 @@ app.get("/my-groups", async (c) => {
   return c.json(groups);
 });
 
+// Get groups user has joined (as member, not host)
+app.get("/my-joined-groups", async (c) => {
+  const lineUserId = c.req.query("userId");
+  if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+
+  const [user] = await db.select().from(users).where(eq(users.lineUserId, lineUserId)).limit(1);
+  if (!user) return c.json([]);
+
+  const joined = await db
+    .select({
+      id: groupsTable.id,
+      roomName: groupsTable.roomName,
+      studio: groupsTable.studio,
+      location: groupsTable.location,
+      datetime: groupsTable.datetime,
+      maxMembers: groupsTable.maxMembers,
+      prefilledMembers: groupsTable.prefilledMembers,
+      price: groupsTable.price,
+      status: groupsTable.status,
+      hostId: groupsTable.hostId,
+      memberCount: sql<number>`(SELECT count(*)::int FROM group_members WHERE group_members.group_id = ${groupsTable.id})`,
+    })
+    .from(groupMembers)
+    .innerJoin(groupsTable, eq(groupMembers.groupId, groupsTable.id))
+    .where(eq(groupMembers.userId, user.id));
+
+  const hostIds = [...new Set(joined.map((g) => g.hostId))];
+  const hosts =
+    hostIds.length > 0
+      ? await db.select({ id: users.id, displayName: users.displayName }).from(users)
+      : [];
+  const hostMap = new Map(hosts.map((h) => [h.id, h.displayName]));
+
+  return c.json(
+    joined.map((g) => ({
+      ...g,
+      currentMembers: g.prefilledMembers + (g.memberCount ?? 0),
+      hostName: hostMap.get(g.hostId) ?? "Unknown",
+    }))
+  );
+});
+
 // Get group members
 app.get("/groups/:id/members", async (c) => {
   const groupId = c.req.param("id");
@@ -261,6 +304,24 @@ app.post("/groups/:id/kick", async (c) => {
   }
 });
 
+// Leave group from LIFF
+app.post("/groups/:id/leave", async (c) => {
+  try {
+    const body = await c.req.json();
+    const lineUserId = body.lineUserId;
+    if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+
+    const user = await upsertUserFromLiff(lineUserId, "");
+
+    const { leaveGroup } = await import("./services/member.js");
+    const result = await leaveGroup(c.req.param("id"), user.id);
+    if (!result.ok) return c.json({ error: result.reason }, 400);
+    return c.json({ status: "ok" });
+  } catch (err) {
+    return c.json({ error: "Failed" }, 500);
+  }
+});
+
 // Join group from LIFF
 app.post("/groups/:id/join", async (c) => {
   try {
@@ -283,6 +344,30 @@ app.post("/groups/:id/join", async (c) => {
       };
       return c.json({ error: msgs[result.reason] || result.reason }, 400);
     }
+
+    // Notify host of new member
+    try {
+      const { getGroupById } = await import("./services/group.js");
+      const group = await getGroupById(c.req.param("id"));
+      if (group) {
+        const [host] = await db.select().from(users).where(eq(users.id, group.hostId)).limit(1);
+        if (host) {
+          const lineClient = getLineClient();
+          await lineClient.pushMessage({
+            to: host.lineUserId,
+            messages: [
+              {
+                type: "text",
+                text: `有人加入你的團「${group.roomName}」！目前${result.groupFull ? "已滿員" : "持續募集中"}。`,
+              },
+            ],
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Failed to notify host:", e);
+    }
+
     return c.json({ status: "ok" });
   } catch (err) {
     return c.json({ error: "Failed" }, 500);

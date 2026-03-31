@@ -394,6 +394,8 @@
       const DAYS = ["日", "一", "二", "三", "四", "五", "六"];
       let uid = null;
       let selectedCities = new Set();
+      let joinedIds = new Set();
+      let busyDates = new Set();
 
       async function init() {
         await liff.init({ liffId: LIFF_ID });
@@ -474,6 +476,22 @@
           });
         }
 
+        // Fetch user's joined groups to mark them and detect collisions
+        try {
+          const joinedRes = await fetch(`${API}/my-joined-groups?userId=${uid}`);
+          const joinedGroups = await joinedRes.json();
+          joinedIds = new Set(joinedGroups.map((g) => g.id));
+          busyDates = new Set();
+          joinedGroups.forEach((g) => {
+            if (g.datetime) {
+              const d = new Date(g.datetime);
+              busyDates.add(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+            }
+          });
+        } catch (e) {
+          /* ignore */
+        }
+
         renderResults(groups);
       }
 
@@ -499,12 +517,25 @@
               if (g.location && ALL_LOC[g.location]) tags.push(ALL_LOC[g.location]);
               if (g.datetime) tags.push(fmtDate(g.datetime));
               if (g.price) tags.push(`$${g.price}/人`);
+              if (g.hostName) tags.push(`團主：${g.hostName}`);
+
+              const isJoined = joinedIds.has(g.id);
+              const isConflict =
+                g.datetime &&
+                (() => {
+                  const d = new Date(g.datetime);
+                  return busyDates.has(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+                })();
 
               return `<div class="result-card">
             <div class="rc-top">
               <div>
                 <div class="rc-name">${g.roomName}</div>
                 ${g.studio ? `<div class="rc-studio">${g.studio}</div>` : ""}
+              </div>
+              <div style="display:flex;gap:4px;align-items:center;">
+                ${isConflict ? '<span class="rc-badge" style="background:#FEF2F2;color:#DC2626;">撞期</span>' : ""}
+                ${isJoined ? '<span class="rc-badge" style="background:#f0fdf4;color:#16a34a;">已加入</span>' : ""}
               </div>
             </div>
             ${tags.length ? `<div class="rc-tags">${tags.map((t) => `<span class="rc-tag">${t}</span>`).join("")}</div>` : ""}
@@ -513,20 +544,24 @@
                 <span class="rc-count">${g.currentMembers}/${g.maxMembers} 人</span>
                 <span class="rc-remaining${remaining <= 2 ? " urgent" : ""}"> · 還差 ${remaining} 人</span>
               </div>
-              <button class="join-btn" onclick="joinGroup('${g.id}',this)">加入</button>
+              ${isJoined ? '<button class="join-btn" disabled>已加入</button>' : `<button class="join-btn" onclick="joinGroup('${g.id}',this,'${g.datetime || ""}')">加入</button>`}
             </div>
           </div>`;
             })
             .join("");
       }
 
-      async function joinGroup(groupId, btn) {
+      async function joinGroup(groupId, btn, datetime) {
+        if (datetime) {
+          const d = new Date(datetime);
+          const dateKey = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+          if (busyDates.has(dateKey)) {
+            if (!confirm("注意：你在這天已經有其他團了，確定要加入嗎？")) return;
+          }
+        }
         btn.disabled = true;
         btn.textContent = "加入中...";
         try {
-          // Use the webhook postback join flow by calling a join API
-          // We need to create a join endpoint or use existing postback
-          // For now, use a direct API call
           const res = await fetch(`${API}/groups/${groupId}/join`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
