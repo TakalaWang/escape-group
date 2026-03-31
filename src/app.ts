@@ -81,7 +81,7 @@ app.post("/groups", async (c) => {
                 action: {
                   type: "uri",
                   label: "分享到聊天室",
-                  uri: `https://liff.line.me/2009659299-rbF8C1zz/share/?groupId=${group.id}`,
+                  uri: `https://liff.line.me/2009659299-rbF8C1zz?share=${group.id}`,
                 },
               },
             ],

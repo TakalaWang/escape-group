@@ -178,7 +178,7 @@ export async function runDailySummary(): Promise<void> {
                       action: {
                         type: "uri",
                         label: "分享到 OpenChat",
-                        uri: "https://liff.line.me/2009659299-rbF8C1zz/share/",
+                        uri: "https://liff.line.me/2009659299-rbF8C1zz?share=all",
                       },
                     },
                   ],

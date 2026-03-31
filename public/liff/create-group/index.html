@@ -558,8 +558,42 @@
             liff.login();
             return;
           }
+
+          // Check if opened for sharing
+          const params = new URLSearchParams(window.location.search);
+          const shareId = params.get("share");
+          if (shareId && liff.isApiAvailable("shareTargetPicker")) {
+            await handleAutoShare(shareId);
+            return;
+          }
         } catch (e) {
           showError("LIFF 初始化失敗：" + e.message);
+        }
+      }
+
+      async function handleAutoShare(shareId) {
+        try {
+          let messages;
+          if (shareId === "all") {
+            // Share daily summary
+            const res = await fetch("https://escape-group.vercel.app/api/summary-text");
+            const data = await res.json();
+            messages =
+              data.flex && data.flex.length > 0
+                ? data.flex.slice(0, 5)
+                : [{ type: "text", text: data.text }];
+          } else {
+            // Share single group card
+            const res = await fetch(`https://escape-group.vercel.app/api/groups/${shareId}/card`);
+            const data = await res.json();
+            messages = data.flexCard ? [data.flexCard] : null;
+          }
+          if (messages) {
+            await liff.shareTargetPicker(messages);
+          }
+          liff.closeWindow();
+        } catch (e) {
+          liff.closeWindow();
         }
       }
 
