@@ -90,7 +90,8 @@ export async function runDailySummary(lineGroupId: string): Promise<void> {
             return true;
         }
         if (s.type === "price" && g.price != null) {
-          if (g.price <= parseInt(s.value)) return true;
+          const [pMin, pMax] = s.value.split("-").map(Number);
+          if ((!pMin || g.price >= pMin) && (!pMax || g.price <= pMax)) return true;
         }
         return false;
       })

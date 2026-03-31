@@ -92,7 +92,8 @@ app.post("/groups", async (c) => {
             matches = true;
         }
         if (sub.type === "price" && body.price != null) {
-          if (body.price <= parseInt(sub.value)) matches = true;
+          const [pMin, pMax] = sub.value.split("-").map(Number);
+          if ((!pMin || body.price >= pMin) && (!pMax || body.price <= pMax)) matches = true;
         }
 
         if (!matches) continue;

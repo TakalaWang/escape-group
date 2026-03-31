@@ -104,8 +104,13 @@ export function buildMySubscriptions(subs: Sub[]): messagingApi.FlexMessage {
     let label: string;
     if (s.type === "location") label = `📍 ${LOCATION_LABELS[s.value] || s.value}`;
     else if (s.type === "keyword") label = `🔍 ${s.value}`;
-    else if (s.type === "price") label = `💰 ${s.value} 元以下`;
-    else label = s.value;
+    else if (s.type === "price") {
+      const [pMin, pMax] = s.value.split("-").map(Number);
+      if (pMin > 0 && pMax > 0) label = `💰 ${pMin}~${pMax} 元`;
+      else if (pMax > 0) label = `💰 ${pMax} 元以下`;
+      else if (pMin > 0) label = `💰 ${pMin} 元以上`;
+      else label = `💰 ${s.value} 元`;
+    } else label = s.value;
 
     bodyContents.push({
       type: "box",

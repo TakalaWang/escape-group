@@ -310,9 +310,18 @@
             <div class="input-row">
               <input
                 type="number"
-                id="priceInput"
+                id="priceMinInput"
                 inputmode="numeric"
-                placeholder="價格上限（元）"
+                placeholder="最低"
+                min="0"
+              />
+              <span style="line-height: 42px; color: #999">~</span>
+              <input
+                type="number"
+                id="priceMaxInput"
+                inputmode="numeric"
+                placeholder="最高"
+                min="0"
               />
               <button class="add-btn" id="addPriceBtn">設定</button>
             </div>
@@ -402,7 +411,11 @@
             } else {
               typeClass = "type-price";
               typeLabel = "價格";
-              valueLabel = s.value + " 元以下";
+              const [pMin, pMax] = s.value.split("-").map(Number);
+              if (pMin > 0 && pMax > 0) valueLabel = `${pMin}~${pMax} 元`;
+              else if (pMax > 0) valueLabel = `${pMax} 元以下`;
+              else if (pMin > 0) valueLabel = `${pMin} 元以上`;
+              else valueLabel = s.value + " 元";
             }
             return `<div class="sub-item">
           <span class="label"><span class="type-badge ${typeClass}">${typeLabel}</span>${valueLabel}</span>
@@ -496,14 +509,22 @@
           input.value = "";
         });
         document.getElementById("addPriceBtn").addEventListener("click", async () => {
-          const input = document.getElementById("priceInput");
-          const v = parseInt(input.value);
-          if (isNaN(v) || v <= 0) {
-            showToast("請輸入有效金額");
+          const minInput = document.getElementById("priceMinInput");
+          const maxInput = document.getElementById("priceMaxInput");
+          const min = minInput.value ? parseInt(minInput.value) : 0;
+          const max = maxInput.value ? parseInt(maxInput.value) : 0;
+          if (min === 0 && max === 0) {
+            showToast("請至少填一個金額");
             return;
           }
-          await addSub("price", String(v));
-          input.value = "";
+          if (min > 0 && max > 0 && min > max) {
+            showToast("最低不能大於最高");
+            return;
+          }
+          const value = `${min}-${max}`;
+          await addSub("price", value);
+          minInput.value = "";
+          maxInput.value = "";
         });
       }
 
