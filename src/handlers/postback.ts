@@ -11,6 +11,9 @@ import {
 import { searchGroups } from "../services/search.js";
 import { buildSummaryCard } from "../line/flex/summary.js";
 import { buildMyGroupsCard } from "../line/flex/my-groups.js";
+import { db } from "../db/client.js";
+import { users } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 
 export async function handlePostback(event: PostbackEvent): Promise<void> {
   const data = new URLSearchParams(event.postback.data);
@@ -57,6 +60,21 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
           },
         ],
       });
+
+      if (result.groupFull && group) {
+        const [host] = await db.select().from(users).where(eq(users.id, group.hostId)).limit(1);
+        if (host) {
+          await client.pushMessage({
+            to: host.lineUserId,
+            messages: [
+              {
+                type: "text",
+                text: `🎉 你的團「${group.roomName}」已滿員！\n\n請建立 LINE 群組，然後把邀請連結貼回來給我。`,
+              },
+            ],
+          });
+        }
+      }
       break;
     }
     case "search": {

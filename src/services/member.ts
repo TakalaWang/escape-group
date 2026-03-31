@@ -3,7 +3,7 @@ import { groupMembers, groups, users } from "../db/schema.js";
 import { eq, and, sql } from "drizzle-orm";
 
 type JoinResult =
-  | { ok: true }
+  | { ok: true; groupFull: boolean; groupId: string }
   | { ok: false; reason: "not_found" | "full" | "already_joined" | "cancelled" | "is_host" };
 
 export async function joinGroup(groupId: string, userId: string): Promise<JoinResult> {
@@ -37,11 +37,12 @@ export async function joinGroup(groupId: string, userId: string): Promise<JoinRe
 
   await db.insert(groupMembers).values({ groupId, userId });
 
-  if (currentMembers + 1 >= g.maxMembers) {
+  const isFull = currentMembers + 1 >= g.maxMembers;
+  if (isFull) {
     await db.update(groups).set({ status: "full" }).where(eq(groups.id, groupId));
   }
 
-  return { ok: true };
+  return { ok: true, groupFull: isFull, groupId };
 }
 
 type LeaveResult = { ok: true } | { ok: false; reason: "not_found" | "not_member" };
