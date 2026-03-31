@@ -62,23 +62,32 @@ app.post("/groups", async (c) => {
       price: group.price,
     };
     try {
-      const hostCard = buildGroupCard(cardData);
-      // Add share button to the card for the host
-      const cardWithShare = JSON.parse(JSON.stringify(hostCard));
-      const bubble = cardWithShare.contents;
-      if (bubble.footer) {
-        bubble.footer.contents.push({
-          type: "button",
-          style: "secondary",
-          height: "sm",
-          margin: "sm",
-          action: {
-            type: "uri",
-            label: "分享到聊天室",
-            uri: `https://liff.line.me/2009659299-rbF8C1zz/share/?groupId=${group.id}`,
+      // Build a card with only share button (no join button) for the host
+      const cardWithShare: any = {
+        type: "flex",
+        altText: `開團成功：${group.roomName}`,
+        contents: {
+          ...JSON.parse(JSON.stringify(buildGroupCard(cardData).contents)),
+          footer: {
+            type: "box",
+            layout: "vertical",
+            paddingAll: "12px",
+            contents: [
+              {
+                type: "button",
+                style: "primary",
+                color: "#06C755",
+                height: "sm",
+                action: {
+                  type: "uri",
+                  label: "分享到聊天室",
+                  uri: `https://liff.line.me/2009659299-rbF8C1zz/share/?groupId=${group.id}`,
+                },
+              },
+            ],
           },
-        });
-      }
+        },
+      };
       await client.pushMessage({
         to: lineUserId,
         messages: [cardWithShare],

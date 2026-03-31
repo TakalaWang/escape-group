@@ -321,7 +321,7 @@
             <button class="action-btn btn-members" onclick="toggleMembers('${g.id}')">
               ${isExpanded ? "收起成員" : "管理成員"}
             </button>
-            ${g.status === "open" ? `<button class="action-btn btn-cancel" onclick="cancelGroup('${g.id}')">取消團</button>` : ""}
+            ${g.status === "open" || g.status === "full" ? `<button class="action-btn btn-cancel" onclick="cancelGroup('${g.id}')">取消團</button>` : ""}
           </div>`;
           }
           html += "</div>";

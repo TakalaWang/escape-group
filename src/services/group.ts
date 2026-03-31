@@ -97,11 +97,11 @@ export async function getGroupsByHost(hostId: string) {
 }
 
 export async function cancelGroup(groupId: string, hostId: string): Promise<boolean> {
-  const result = await db
+  await db
     .update(groups)
     .set({ status: "cancelled" })
-    .where(and(eq(groups.id, groupId), eq(groups.hostId, hostId), eq(groups.status, "open")));
-  return (result as any).rowCount > 0 || true;
+    .where(and(eq(groups.id, groupId), eq(groups.hostId, hostId)));
+  return true;
 }
 
 export async function getGroupMembers(groupId: string) {
