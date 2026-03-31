@@ -58,6 +58,7 @@ export const groups = pgTable("groups", {
   maxMembers: integer("max_members").notNull(),
   prefilledMembers: integer("prefilled_members").notNull().default(1),
   price: integer("price"), // 每人費用
+  note: text("note"), // 備註
   status: groupStatusEnum("status").notNull().default("open"),
   lineGroupId: text("line_group_id"),
   lastAnnouncedAt: timestamp("last_announced_at", { withTimezone: true }),

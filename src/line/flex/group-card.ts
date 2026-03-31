@@ -35,6 +35,7 @@ type GroupCardInput = {
   currentMembers: number;
   hostName: string;
   price: number | null;
+  note: string | null;
 };
 
 function formatDate(date: Date): string {
@@ -251,6 +252,18 @@ export function buildGroupCard(input: GroupCardInput): messagingApi.FlexMessage 
       paddingAll: "16px",
       contents: [
         ...infoRows,
+        ...(input.note
+          ? [
+              {
+                type: "text" as const,
+                text: input.note,
+                size: "xs" as const,
+                color: "#666666",
+                margin: "lg" as const,
+                wrap: true,
+              },
+            ]
+          : []),
         { type: "separator", margin: "lg" },
         {
           type: "box",

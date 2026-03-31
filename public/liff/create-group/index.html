@@ -403,6 +403,42 @@
             </div>
           </div>
         </div>
+
+        <!-- Section: 備註 -->
+        <div class="section">
+          <div class="section-title">備註</div>
+          <div class="form-group">
+            <textarea
+              id="note"
+              rows="3"
+              placeholder="其他說明（例：需要有經驗的玩家、自備道具等）"
+              style="
+                width: 100%;
+                padding: 10px 12px;
+                border: 1.5px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 15px;
+                background: #fafafa;
+                font-family: inherit;
+                resize: vertical;
+                -webkit-appearance: none;
+                transition:
+                  border-color 0.2s,
+                  box-shadow 0.2s;
+              "
+              onfocus="
+                this.style.borderColor = '#06C755';
+                this.style.boxShadow = '0 0 0 3px rgba(6,199,85,0.1)';
+                this.style.background = 'white';
+              "
+              onblur="
+                this.style.borderColor = '#e0e0e0';
+                this.style.boxShadow = 'none';
+                this.style.background = '#fafafa';
+              "
+            ></textarea>
+          </div>
+        </div>
       </div>
 
       <div class="submit-area">
@@ -516,6 +552,7 @@
             duration: document.getElementById("duration").value
               ? parseInt(document.getElementById("duration").value)
               : undefined,
+            note: document.getElementById("note").value.trim() || undefined,
           };
 
           if (!payload.roomName) {

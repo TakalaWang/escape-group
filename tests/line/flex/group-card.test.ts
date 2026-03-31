@@ -14,6 +14,7 @@ describe("buildGroupCard", () => {
     currentMembers: 3,
     hostName: "小明",
     price: null,
+    note: null,
   };
 
   it("returns a valid Flex Message object", () => {
