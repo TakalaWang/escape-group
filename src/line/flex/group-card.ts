@@ -49,94 +49,189 @@ function formatDate(date: Date): string {
 export function buildGroupCard(input: GroupCardInput): messagingApi.FlexMessage {
   const remaining = input.maxMembers - input.currentMembers;
   const locationLabel = input.location ? (LOCATION_LABELS[input.location] ?? input.location) : null;
-  const subtitle = [input.studio, locationLabel].filter(Boolean).join(" · ");
 
-  const bodyContents: any[] = [
-    {
-      type: "text",
-      text: input.roomName,
-      weight: "bold",
-      size: "xl",
-      wrap: true,
-    },
-  ];
+  // Info rows
+  const infoRows: messagingApi.FlexComponent[] = [];
 
-  if (subtitle) {
-    bodyContents.push({
-      type: "text",
-      text: subtitle,
-      size: "sm",
-      color: "#888888",
-      margin: "sm",
+  if (input.datetime) {
+    infoRows.push({
+      type: "box",
+      layout: "baseline",
+      spacing: "sm",
+      margin: "md",
+      contents: [
+        {
+          type: "text",
+          text: "日期",
+          size: "xs",
+          color: "#aaaaaa",
+          flex: 0,
+          weight: "bold",
+        },
+        {
+          type: "text",
+          text: formatDate(input.datetime),
+          size: "sm",
+          color: "#333333",
+          flex: 1,
+          align: "end",
+        },
+      ],
     });
   }
 
-  if (input.datetime) {
-    bodyContents.push({
+  if (locationLabel) {
+    infoRows.push({
       type: "box",
-      layout: "horizontal",
-      margin: "lg",
+      layout: "baseline",
+      spacing: "sm",
+      margin: "sm",
       contents: [
-        { type: "text", text: "📅", size: "sm", flex: 0 },
-        { type: "text", text: formatDate(input.datetime), size: "sm", margin: "sm" },
+        {
+          type: "text",
+          text: "地區",
+          size: "xs",
+          color: "#aaaaaa",
+          flex: 0,
+          weight: "bold",
+        },
+        {
+          type: "text",
+          text: locationLabel,
+          size: "sm",
+          color: "#333333",
+          flex: 1,
+          align: "end",
+        },
       ],
     });
   }
 
   if (input.price) {
-    bodyContents.push({
+    infoRows.push({
       type: "box",
-      layout: "horizontal",
-      margin: "md",
+      layout: "baseline",
+      spacing: "sm",
+      margin: "sm",
       contents: [
-        { type: "text", text: "💰", size: "sm", flex: 0 },
-        { type: "text", text: `${input.price} 元/人`, size: "sm", margin: "sm" },
+        {
+          type: "text",
+          text: "費用",
+          size: "xs",
+          color: "#aaaaaa",
+          flex: 0,
+          weight: "bold",
+        },
+        {
+          type: "text",
+          text: `$${input.price}/人`,
+          size: "sm",
+          color: "#333333",
+          flex: 1,
+          align: "end",
+        },
       ],
     });
   }
 
-  bodyContents.push(
-    {
-      type: "box",
-      layout: "horizontal",
-      margin: "md",
-      contents: [
-        { type: "text", text: "👥", size: "sm", flex: 0 },
-        {
-          type: "text",
-          text: `${input.currentMembers}/${input.maxMembers} 人（還差 ${remaining} 人）${input.minMembers ? ` · ${input.minMembers}人成團` : ""}`,
-          size: "sm",
-          margin: "sm",
-        },
-      ],
-    },
-    {
-      type: "text",
-      text: `團主：${input.hostName}`,
-      size: "xs",
-      color: "#aaaaaa",
-      margin: "lg",
-    }
-  );
+  infoRows.push({
+    type: "box",
+    layout: "baseline",
+    spacing: "sm",
+    margin: "sm",
+    contents: [
+      {
+        type: "text",
+        text: "人數",
+        size: "xs",
+        color: "#aaaaaa",
+        flex: 0,
+        weight: "bold",
+      },
+      {
+        type: "text",
+        text: `${input.currentMembers}/${input.maxMembers}${input.minMembers ? ` (${input.minMembers}人成團)` : ""}`,
+        size: "sm",
+        color: "#333333",
+        flex: 1,
+        align: "end",
+      },
+    ],
+  });
 
   const bubble: messagingApi.FlexBubble = {
     type: "bubble",
+    header: {
+      type: "box",
+      layout: "vertical",
+      backgroundColor: "#06C755",
+      paddingAll: "16px",
+      contents: [
+        {
+          type: "text",
+          text: input.roomName,
+          weight: "bold",
+          size: "lg",
+          color: "#ffffff",
+          wrap: true,
+        },
+        ...(input.studio
+          ? [
+              {
+                type: "text" as const,
+                text: input.studio,
+                size: "xs" as const,
+                color: "#ffffffcc" as const,
+                margin: "xs" as const,
+              },
+            ]
+          : []),
+      ],
+    },
     body: {
       type: "box",
       layout: "vertical",
-      contents: bodyContents,
+      spacing: "sm",
+      paddingAll: "16px",
+      contents: [
+        ...infoRows,
+        { type: "separator", margin: "lg" },
+        {
+          type: "box",
+          layout: "horizontal",
+          margin: "md",
+          contents: [
+            {
+              type: "text",
+              text: `還差 ${remaining} 人`,
+              size: "sm",
+              color: remaining <= 2 ? "#FF3B30" : "#06C755",
+              weight: "bold",
+            },
+            {
+              type: "text",
+              text: `團主：${input.hostName}`,
+              size: "xs",
+              color: "#aaaaaa",
+              align: "end",
+            },
+          ],
+        },
+      ],
     },
     footer: {
       type: "box",
       layout: "vertical",
+      paddingAll: "12px",
       contents: [
         {
           type: "button",
           style: "primary",
           color: "#06C755",
+          height: "sm",
           action: {
             type: "postback",
-            label: "我要加入",
+            label: "加入此團",
             data: `action=join&groupId=${input.id}`,
           },
         },

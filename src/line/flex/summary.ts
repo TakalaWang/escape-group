@@ -13,6 +13,29 @@ type SummaryGroup = {
   price?: number | null;
 };
 
+const LOCATION_LABELS: Record<string, string> = {
+  keelung: "基隆",
+  taipei: "台北",
+  new_taipei: "新北",
+  taoyuan: "桃園",
+  hsinchu: "新竹",
+  miaoli: "苗栗",
+  taichung: "台中",
+  changhua: "彰化",
+  nantou: "南投",
+  yunlin: "雲林",
+  chiayi: "嘉義",
+  tainan: "台南",
+  kaohsiung: "高雄",
+  pingtung: "屏東",
+  yilan: "宜蘭",
+  hualien: "花蓮",
+  taitung: "台東",
+  penghu: "澎湖",
+  kinmen: "金門",
+  matsu: "馬祖",
+};
+
 function formatDate(date: Date): string {
   const days = ["日", "一", "二", "三", "四", "五", "六"];
   const m = date.getMonth() + 1;
@@ -20,89 +43,138 @@ function formatDate(date: Date): string {
   const day = days[date.getDay()];
   const h = date.getHours().toString().padStart(2, "0");
   const min = date.getMinutes().toString().padStart(2, "0");
-  return `${m}/${d} (${day}) ${h}:${min}`;
+  return `${m}/${d}(${day}) ${h}:${min}`;
 }
 
 function buildBubble(g: SummaryGroup): messagingApi.FlexBubble {
   const remaining = g.maxMembers - g.currentMembers;
+  const locationLabel = g.location ? (LOCATION_LABELS[g.location] ?? g.location) : null;
+
+  const tags: messagingApi.FlexComponent[] = [];
+  if (locationLabel) {
+    tags.push({
+      type: "box",
+      layout: "vertical",
+      backgroundColor: "#EEF7FF",
+      cornerRadius: "4px",
+      paddingAll: "4px",
+      paddingStart: "8px",
+      paddingEnd: "8px",
+      contents: [{ type: "text", text: locationLabel, size: "xxs", color: "#2563EB" }],
+    });
+  }
+  if (g.price) {
+    tags.push({
+      type: "box",
+      layout: "vertical",
+      backgroundColor: "#F0FDF4",
+      cornerRadius: "4px",
+      paddingAll: "4px",
+      paddingStart: "8px",
+      paddingEnd: "8px",
+      contents: [{ type: "text", text: `$${g.price}`, size: "xxs", color: "#16A34A" }],
+    });
+  }
+
   const bodyContents: messagingApi.FlexComponent[] = [
-    { type: "text", text: g.roomName, weight: "bold", size: "lg", wrap: true },
+    { type: "text", text: g.roomName, weight: "bold", size: "md", wrap: true },
   ];
 
   if (g.studio) {
     bodyContents.push({
       type: "text",
       text: g.studio,
-      size: "xs",
-      color: "#888888",
-      margin: "sm",
+      size: "xxs",
+      color: "#999999",
+      margin: "xs",
+    });
+  }
+
+  if (tags.length > 0) {
+    bodyContents.push({
+      type: "box",
+      layout: "horizontal",
+      spacing: "xs",
+      margin: "md",
+      contents: tags,
     });
   }
 
   if (g.datetime) {
     bodyContents.push({
-      type: "box",
-      layout: "horizontal",
-      margin: "lg",
-      contents: [
-        { type: "text", text: "📅", size: "sm", flex: 0 },
-        { type: "text", text: formatDate(g.datetime), size: "sm", margin: "sm" },
-      ],
+      type: "text",
+      text: formatDate(g.datetime),
+      size: "xs",
+      color: "#666666",
+      margin: "md",
     });
   }
 
-  if (g.price) {
-    bodyContents.push({
-      type: "box",
-      layout: "horizontal",
-      margin: "md",
-      contents: [
-        { type: "text", text: "💰", size: "sm", flex: 0 },
-        { type: "text", text: `${g.price} 元/人`, size: "sm", margin: "sm" },
-      ],
-    });
-  }
+  bodyContents.push({ type: "filler" });
 
   bodyContents.push({
     type: "box",
     layout: "horizontal",
-    margin: "md",
     contents: [
-      { type: "text", text: "👥", size: "sm", flex: 0 },
       {
-        type: "text",
-        text: `${g.currentMembers}/${g.maxMembers} 人（還差 ${remaining} 人）${g.minMembers ? ` · ${g.minMembers}人成團` : ""}`,
-        size: "sm",
-        margin: "sm",
+        type: "box",
+        layout: "vertical",
+        flex: 1,
+        contents: [
+          {
+            type: "text",
+            text: `${g.currentMembers}/${g.maxMembers} 人`,
+            size: "sm",
+            weight: "bold",
+            color: "#333333",
+          },
+          {
+            type: "text",
+            text: `還差 ${remaining} 人`,
+            size: "xxs",
+            color: remaining <= 2 ? "#FF3B30" : "#888888",
+          },
+        ],
       },
+      ...(g.hostName
+        ? [
+            {
+              type: "text" as const,
+              text: g.hostName,
+              size: "xxs" as const,
+              color: "#aaaaaa" as const,
+              align: "end" as const,
+              gravity: "bottom" as const,
+            },
+          ]
+        : []),
     ],
   });
-
-  if (g.hostName) {
-    bodyContents.push({
-      type: "text",
-      text: `團主：${g.hostName}`,
-      size: "xs",
-      color: "#aaaaaa",
-      margin: "md",
-    });
-  }
 
   return {
     type: "bubble",
     size: "kilo",
-    body: { type: "box", layout: "vertical", contents: bodyContents },
+    body: {
+      type: "box",
+      layout: "vertical",
+      paddingAll: "14px",
+      spacing: "none",
+      contents: bodyContents,
+    },
     footer: {
       type: "box",
       layout: "vertical",
+      paddingAll: "10px",
+      paddingTop: "0px",
       contents: [
         {
           type: "button",
           style: "primary",
           color: "#06C755",
+          height: "sm",
           action: {
             type: "postback",
-            label: "我要加入",
+            label: "加入",
             data: `action=join&groupId=${g.id}`,
           },
         },
@@ -116,19 +188,28 @@ export function buildSummaryCards(groups: SummaryGroup[]): messagingApi.FlexMess
     return [
       {
         type: "flex",
-        altText: "📋 開團彙整（0 團）",
+        altText: "目前沒有開放的團",
         contents: {
           type: "bubble",
           body: {
             type: "box",
             layout: "vertical",
+            paddingAll: "20px",
+            spacing: "md",
             contents: [
-              { type: "text", text: "📋 開團彙整", weight: "bold", size: "lg" },
+              {
+                type: "text",
+                text: "開團彙整",
+                weight: "bold",
+                size: "lg",
+                color: "#333333",
+              },
+              { type: "separator" },
               {
                 type: "text",
                 text: "目前沒有開放的團",
                 size: "sm",
-                color: "#888888",
+                color: "#999999",
                 margin: "lg",
               },
             ],
@@ -138,17 +219,13 @@ export function buildSummaryCards(groups: SummaryGroup[]): messagingApi.FlexMess
     ];
   }
 
-  // Split into chunks of 12 (LINE carousel limit)
   const messages: messagingApi.FlexMessage[] = [];
   for (let i = 0; i < groups.length; i += 12) {
     const chunk = groups.slice(i, i + 12);
     messages.push({
       type: "flex",
-      altText: `📋 開團彙整（${groups.length} 團開放中）`,
-      contents: {
-        type: "carousel",
-        contents: chunk.map(buildBubble),
-      },
+      altText: `開團彙整（${groups.length} 團開放中）`,
+      contents: { type: "carousel", contents: chunk.map(buildBubble) },
     });
   }
   return messages;

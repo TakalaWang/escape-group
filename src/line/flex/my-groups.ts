@@ -16,59 +16,86 @@ function formatDate(date: Date): string {
   const day = days[date.getDay()];
   const h = date.getHours().toString().padStart(2, "0");
   const min = date.getMinutes().toString().padStart(2, "0");
-  return `${m}/${d} (${day}) ${h}:${min}`;
+  return `${m}/${d}(${day}) ${h}:${min}`;
 }
 
-export function buildMyGroupsCard(groups: MyGroup[]): messagingApi.FlexMessage {
-  const bodyContents: any[] = [
-    { type: "text", text: "📋 我的團", weight: "bold", size: "lg" },
-    { type: "separator", margin: "md" },
-  ];
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  open: { label: "募集中", color: "#16A34A", bg: "#F0FDF4" },
+  full: { label: "已額滿", color: "#2563EB", bg: "#EFF6FF" },
+  completed: { label: "已完成", color: "#6B7280", bg: "#F3F4F6" },
+  cancelled: { label: "已取消", color: "#DC2626", bg: "#FEF2F2" },
+};
 
+export function buildMyGroupsCard(groups: MyGroup[]): messagingApi.FlexMessage {
   if (groups.length === 0) {
-    bodyContents.push({
-      type: "text",
-      text: "你還沒有開過團",
-      size: "sm",
-      color: "#888888",
-      margin: "lg",
-    });
+    return {
+      type: "flex",
+      altText: "我的團",
+      contents: {
+        type: "bubble",
+        body: {
+          type: "box",
+          layout: "vertical",
+          paddingAll: "20px",
+          spacing: "md",
+          contents: [
+            { type: "text", text: "我的團", weight: "bold", size: "lg" },
+            { type: "separator" },
+            {
+              type: "text",
+              text: "你還沒有開過團\n點選「開團」來建立第一個團吧！",
+              size: "sm",
+              color: "#999999",
+              margin: "lg",
+              wrap: true,
+            },
+          ],
+        },
+      },
+    };
   }
 
-  for (const g of groups) {
-    const statusLabel =
-      g.status === "open"
-        ? `${g.currentMembers}/${g.maxMembers}人`
-        : g.status === "full"
-          ? "已額滿"
-          : g.status === "cancelled"
-            ? "已取消"
-            : "已完成";
+  // Use carousel - one bubble per group for better readability
+  const bubbles: messagingApi.FlexBubble[] = groups.map((g) => {
+    const remaining = g.maxMembers - g.currentMembers;
+    const status = STATUS_CONFIG[g.status] || STATUS_CONFIG.open;
+    const isActive = g.status === "open" || g.status === "full";
 
-    const contents: any[] = [
+    const bodyContents: messagingApi.FlexComponent[] = [
       {
-        type: "text",
-        text: g.roomName,
-        weight: "bold",
-        size: "sm",
-        flex: 3,
-      },
-      {
-        type: "text",
-        text: statusLabel,
-        size: "xs",
-        align: "end",
-        flex: 1,
-        color: g.status === "open" ? "#06C755" : "#888888",
+        type: "box",
+        layout: "horizontal",
+        contents: [
+          {
+            type: "text",
+            text: g.roomName,
+            weight: "bold",
+            size: "md",
+            flex: 3,
+            wrap: true,
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            flex: 0,
+            backgroundColor: status.bg,
+            cornerRadius: "4px",
+            paddingAll: "4px",
+            paddingStart: "8px",
+            paddingEnd: "8px",
+            contents: [
+              {
+                type: "text",
+                text: status.label,
+                size: "xxs",
+                color: status.color,
+                weight: "bold",
+              },
+            ],
+          },
+        ],
       },
     ];
-
-    bodyContents.push({
-      type: "box",
-      layout: "horizontal",
-      margin: "lg",
-      contents,
-    });
 
     if (g.datetime) {
       bodyContents.push({
@@ -76,54 +103,74 @@ export function buildMyGroupsCard(groups: MyGroup[]): messagingApi.FlexMessage {
         text: formatDate(g.datetime),
         size: "xs",
         color: "#888888",
-        margin: "sm",
+        margin: "md",
       });
     }
 
-    if (g.status === "open" || g.status === "full") {
-      bodyContents.push({
-        type: "box",
-        layout: "horizontal",
-        margin: "sm",
-        spacing: "sm",
-        contents: [
-          {
-            type: "button",
-            style: "secondary",
-            height: "sm",
-            action: {
-              type: "postback",
-              label: "管理成員",
-              data: `action=manage_members&groupId=${g.id}`,
-            },
-          },
-          {
-            type: "button",
-            style: "secondary",
-            height: "sm",
-            action: {
-              type: "postback",
-              label: "取消團",
-              data: `action=cancel_group&groupId=${g.id}`,
-            },
-          },
-        ],
+    bodyContents.push({
+      type: "text",
+      text: `${g.currentMembers}/${g.maxMembers} 人${g.status === "open" ? ` — 還差 ${remaining} 人` : ""}`,
+      size: "sm",
+      color: "#555555",
+      margin: "sm",
+    });
+
+    const footerButtons: messagingApi.FlexComponent[] = [];
+    if (isActive) {
+      footerButtons.push({
+        type: "button",
+        style: "secondary",
+        height: "sm",
+        action: {
+          type: "postback",
+          label: "管理成員",
+          data: `action=manage_members&groupId=${g.id}`,
+        },
       });
     }
-  }
+    if (g.status === "open") {
+      footerButtons.push({
+        type: "button",
+        style: "secondary",
+        height: "sm",
+        color: "#DC2626",
+        action: {
+          type: "postback",
+          label: "取消團",
+          data: `action=cancel_group&groupId=${g.id}`,
+        },
+      });
+    }
 
-  const bubble: messagingApi.FlexBubble = {
-    type: "bubble",
-    body: {
-      type: "box",
-      layout: "vertical",
-      contents: bodyContents,
-    },
-  };
+    return {
+      type: "bubble" as const,
+      size: "kilo" as const,
+      body: {
+        type: "box" as const,
+        layout: "vertical" as const,
+        paddingAll: "14px",
+        spacing: "none" as const,
+        contents: bodyContents,
+      },
+      ...(footerButtons.length > 0
+        ? {
+            footer: {
+              type: "box" as const,
+              layout: "horizontal" as const,
+              spacing: "sm" as const,
+              paddingAll: "10px",
+              paddingTop: "0px",
+              contents: footerButtons,
+            },
+          }
+        : {}),
+    };
+  });
 
   return {
     type: "flex",
-    altText: `📋 我的團（${groups.length} 個）`,
-    contents: bubble,
+    altText: `我的團（${groups.length} 個）`,
+    contents:
+      bubbles.length === 1 ? bubbles[0] : { type: "carousel", contents: bubbles.slice(0, 12) },
   };
 }
