@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>找團</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC", sans-serif;
+        background: #f5f6f8;
+        color: #1a1a1a;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        overscroll-behavior: contain;
+      }
+      .header {
+        background: linear-gradient(135deg, #333333 0%, #1a1a1a 100%);
+        padding: 24px 20px 20px;
+        text-align: center;
+        color: white;
+      }
+      .header h1 {
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .header p {
+        font-size: 13px;
+        opacity: 0.85;
+        margin-top: 4px;
+      }
+      .content {
+        padding: 16px;
+      }
+      .section {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      .section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #06c755;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .filter-row {
+        margin-bottom: 14px;
+      }
+      .filter-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 6px;
+      }
+      .city-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .chip {
+        padding: 6px 12px;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 16px;
+        background: white;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .chip:active {
+        transform: scale(0.95);
+      }
+      .chip.on {
+        border-color: #06c755;
+        background: #f0fdf4;
+        color: #06c755;
+        font-weight: 600;
+      }
+      .date-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .date-row input {
+        flex: 1;
+        padding: 10px 10px;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        background: #fafafa;
+        -webkit-appearance: none;
+      }
+      .date-row input:focus {
+        outline: none;
+        border-color: #06c755;
+        background: white;
+      }
+      .date-sep {
+        color: #bbb;
+      }
+      .input-sm {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 15px;
+        background: #fafafa;
+        -webkit-appearance: none;
+      }
+      .input-sm:focus {
+        outline: none;
+        border-color: #06c755;
+        background: white;
+      }
+      .input-sm::placeholder {
+        color: #c0c0c0;
+      }
+      .price-row {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .price-row input {
+        flex: 1;
+      }
+      .search-btn {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #06c755, #05a647);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 4px;
+      }
+      .search-btn:active {
+        opacity: 0.9;
+      }
+      .clear-btn {
+        width: 100%;
+        padding: 10px;
+        background: none;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #999;
+        cursor: pointer;
+        margin-top: 8px;
+      }
+
+      /* Results */
+      .results-header {
+        font-size: 14px;
+        color: #888;
+        margin-bottom: 12px;
+      }
+      .result-card {
+        background: white;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        animation: fadeIn 0.2s ease;
+      }
+      .rc-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .rc-name {
+        font-size: 16px;
+        font-weight: 700;
+        flex: 1;
+      }
+      .rc-badge {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-weight: 600;
+        white-space: nowrap;
+        margin-left: 8px;
+      }
+      .rc-studio {
+        font-size: 12px;
+        color: #999;
+        margin-top: 2px;
+      }
+      .rc-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .rc-tag {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        background: #f5f5f5;
+        color: #666;
+      }
+      .rc-members {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #f0f0f0;
+      }
+      .rc-count {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .rc-remaining {
+        font-size: 12px;
+      }
+      .rc-remaining.urgent {
+        color: #ff3b30;
+        font-weight: 600;
+      }
+      .join-btn {
+        padding: 8px 20px;
+        background: #06c755;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .join-btn:active {
+        opacity: 0.85;
+      }
+      .join-btn:disabled {
+        background: #ccc;
+      }
+      .empty-results {
+        text-align: center;
+        padding: 32px 0;
+        color: #bbb;
+        font-size: 14px;
+      }
+      .loading {
+        text-align: center;
+        padding: 40px 0;
+        color: #999;
+        font-size: 14px;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #1a1a1a;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        opacity: 0;
+        transition: all 0.3s;
+        z-index: 50;
+        pointer-events: none;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>找團</h1>
+      <p>搜尋符合條件的密室團</p>
+    </div>
+    <div class="content">
+      <div id="loadingState" class="loading">載入中...</div>
+      <div id="main" style="display: none">
+        <div class="section">
+          <div class="section-title">篩選條件</div>
+
+          <div class="filter-row">
+            <div class="filter-label">地區</div>
+            <div class="city-wrap" id="cityWrap"></div>
+          </div>
+
+          <div class="filter-row">
+            <div class="filter-label">日期範圍</div>
+            <div class="date-row">
+              <input type="date" id="dateFrom" />
+              <span class="date-sep">~</span>
+              <input type="date" id="dateTo" />
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <div class="filter-label">關鍵字</div>
+            <input type="text" class="input-sm" id="keyword" placeholder="密室名稱或工作室" />
+          </div>
+
+          <div class="filter-row">
+            <div class="filter-label">價格範圍</div>
+            <div class="price-row">
+              <input
+                type="number"
+                class="input-sm"
+                id="priceMin"
+                inputmode="numeric"
+                placeholder="最低"
+                min="0"
+              />
+              <span class="date-sep">~</span>
+              <input
+                type="number"
+                class="input-sm"
+                id="priceMax"
+                inputmode="numeric"
+                placeholder="最高"
+                min="0"
+              />
+            </div>
+          </div>
+
+          <button class="search-btn" id="searchBtn">搜尋</button>
+          <button class="clear-btn" id="clearBtn">清除篩選</button>
+        </div>
+
+        <div id="results"></div>
+      </div>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+      const LIFF_ID = "2009659299-kwXd0ja5";
+      const API = "https://escape-group.vercel.app/api";
+      const LOCATIONS = {
+        北部: {
+          keelung: "基隆",
+          taipei: "台北",
+          new_taipei: "新北",
+          taoyuan: "桃園",
+          hsinchu: "新竹",
+          miaoli: "苗栗",
+        },
+        中部: {
+          taichung: "台中",
+          changhua: "彰化",
+          nantou: "南投",
+          yunlin: "雲林",
+          chiayi: "嘉義",
+        },
+        南部: { tainan: "台南", kaohsiung: "高雄", pingtung: "屏東" },
+        "東部+離島": {
+          yilan: "宜蘭",
+          hualien: "花蓮",
+          taitung: "台東",
+          penghu: "澎湖",
+          kinmen: "金門",
+          matsu: "馬祖",
+        },
+      };
+      const ALL_LOC = Object.values(LOCATIONS).reduce((a, r) => ({ ...a, ...r }), {});
+      const DAYS = ["日", "一", "二", "三", "四", "五", "六"];
+      let uid = null;
+      let selectedCities = new Set();
+
+      async function init() {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+        uid = (await liff.getProfile()).userId;
+        buildCityGrid();
+        setupEvents();
+        document.getElementById("loadingState").style.display = "none";
+        document.getElementById("main").style.display = "block";
+        search(); // Load all groups initially
+      }
+
+      function buildCityGrid() {
+        const el = document.getElementById("cityWrap");
+        let html = "";
+        for (const cities of Object.values(LOCATIONS)) {
+          for (const [v, label] of Object.entries(cities)) {
+            html += `<div class="chip" data-loc="${v}" onclick="toggleCity('${v}')">${label}</div>`;
+          }
+        }
+        el.innerHTML = html;
+      }
+
+      function toggleCity(v) {
+        if (selectedCities.has(v)) selectedCities.delete(v);
+        else selectedCities.add(v);
+        document
+          .querySelectorAll(".chip")
+          .forEach((c) => c.classList.toggle("on", selectedCities.has(c.dataset.loc)));
+      }
+
+      function setupEvents() {
+        document.getElementById("searchBtn").addEventListener("click", search);
+        document.getElementById("clearBtn").addEventListener("click", () => {
+          selectedCities.clear();
+          document.querySelectorAll(".chip").forEach((c) => c.classList.remove("on"));
+          document.getElementById("dateFrom").value = "";
+          document.getElementById("dateTo").value = "";
+          document.getElementById("keyword").value = "";
+          document.getElementById("priceMin").value = "";
+          document.getElementById("priceMax").value = "";
+          search();
+        });
+      }
+
+      async function search() {
+        const params = new URLSearchParams();
+        if (selectedCities.size === 1) params.set("location", [...selectedCities][0]);
+        const df = document.getElementById("dateFrom").value;
+        const dt = document.getElementById("dateTo").value;
+        if (df) params.set("dateFrom", df);
+        if (dt) params.set("dateTo", dt);
+        const kw = document.getElementById("keyword").value.trim();
+        if (kw) params.set("keyword", kw);
+
+        const res = await fetch(`${API}/groups?${params}`);
+        let groups = await res.json();
+
+        // Client-side filter for multi-city and price (API only supports single location)
+        if (selectedCities.size > 1) {
+          groups = groups.filter((g) => selectedCities.has(g.location));
+        }
+        const pMin = document.getElementById("priceMin").value
+          ? parseInt(document.getElementById("priceMin").value)
+          : 0;
+        const pMax = document.getElementById("priceMax").value
+          ? parseInt(document.getElementById("priceMax").value)
+          : 0;
+        if (pMin > 0 || pMax > 0) {
+          groups = groups.filter((g) => {
+            if (g.price == null) return false;
+            if (pMin > 0 && g.price < pMin) return false;
+            if (pMax > 0 && g.price > pMax) return false;
+            return true;
+          });
+        }
+
+        renderResults(groups);
+      }
+
+      function fmtDate(d) {
+        if (!d) return "";
+        const dt = new Date(d);
+        return `${dt.getMonth() + 1}/${dt.getDate()}(${DAYS[dt.getDay()]}) ${dt.getHours().toString().padStart(2, "0")}:${dt.getMinutes().toString().padStart(2, "0")}`;
+      }
+
+      function renderResults(groups) {
+        const el = document.getElementById("results");
+        if (groups.length === 0) {
+          el.innerHTML =
+            '<div class="empty-results">沒有找到符合條件的團<br>試試調整篩選條件</div>';
+          return;
+        }
+        el.innerHTML =
+          `<div class="results-header">找到 ${groups.length} 個團</div>` +
+          groups
+            .map((g) => {
+              const remaining = g.maxMembers - g.currentMembers;
+              const tags = [];
+              if (g.location && ALL_LOC[g.location]) tags.push(ALL_LOC[g.location]);
+              if (g.datetime) tags.push(fmtDate(g.datetime));
+              if (g.price) tags.push(`$${g.price}/人`);
+
+              return `<div class="result-card">
+            <div class="rc-top">
+              <div>
+                <div class="rc-name">${g.roomName}</div>
+                ${g.studio ? `<div class="rc-studio">${g.studio}</div>` : ""}
+              </div>
+            </div>
+            ${tags.length ? `<div class="rc-tags">${tags.map((t) => `<span class="rc-tag">${t}</span>`).join("")}</div>` : ""}
+            <div class="rc-members">
+              <div>
+                <span class="rc-count">${g.currentMembers}/${g.maxMembers} 人</span>
+                <span class="rc-remaining${remaining <= 2 ? " urgent" : ""}"> · 還差 ${remaining} 人</span>
+              </div>
+              <button class="join-btn" onclick="joinGroup('${g.id}',this)">加入</button>
+            </div>
+          </div>`;
+            })
+            .join("");
+      }
+
+      async function joinGroup(groupId, btn) {
+        btn.disabled = true;
+        btn.textContent = "加入中...";
+        try {
+          // Use the webhook postback join flow by calling a join API
+          // We need to create a join endpoint or use existing postback
+          // For now, use a direct API call
+          const res = await fetch(`${API}/groups/${groupId}/join`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lineUserId: uid }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            toast(data.error || "加入失敗");
+            btn.disabled = false;
+            btn.textContent = "加入";
+            return;
+          }
+          toast("已加入！");
+          btn.textContent = "已加入";
+          search(); // refresh
+        } catch (e) {
+          toast("加入失敗");
+          btn.disabled = false;
+          btn.textContent = "加入";
+        }
+      }
+
+      function toast(msg) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.classList.add("show");
+        setTimeout(() => el.classList.remove("show"), 2000);
+      }
+
+      init().catch((e) => {
+        document.getElementById("loadingState").textContent = "載入失敗：" + e.message;
+      });
+    </script>
+  </body>
+</html>

@@ -14,6 +14,8 @@ import { subscriptions, users } from "./db/schema.js";
 const app = new Hono().basePath("/api");
 
 app.use("/groups", cors());
+app.use("/groups/*", cors());
+app.use("/my-groups", cors());
 app.use("/subscriptions/*", cors());
 app.use("/subscriptions", cors());
 
@@ -202,6 +204,89 @@ app.delete("/subscriptions/:id", async (c) => {
   const id = c.req.param("id");
   await db.delete(subscriptions).where(eq(subscriptions.id, id));
   return c.json({ status: "ok" });
+});
+
+// Get user's hosted groups
+app.get("/my-groups", async (c) => {
+  const lineUserId = c.req.query("userId");
+  if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+
+  const user = await upsertUserFromLiff(lineUserId, "");
+
+  const { getGroupsByHost } = await import("./services/group.js");
+  const groups = await getGroupsByHost(user.id);
+  return c.json(groups);
+});
+
+// Get group members
+app.get("/groups/:id/members", async (c) => {
+  const groupId = c.req.param("id");
+  const { getGroupMembers } = await import("./services/group.js");
+  const members = await getGroupMembers(groupId);
+  return c.json(members);
+});
+
+// Cancel group
+app.post("/groups/:id/cancel", async (c) => {
+  try {
+    const body = await c.req.json();
+    const lineUserId = body.lineUserId;
+    if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+
+    const user = await upsertUserFromLiff(lineUserId, "");
+
+    const { cancelGroup } = await import("./services/group.js");
+    await cancelGroup(c.req.param("id"), user.id);
+    return c.json({ status: "ok" });
+  } catch (err) {
+    return c.json({ error: "Failed" }, 500);
+  }
+});
+
+// Kick member
+app.post("/groups/:id/kick", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { lineUserId, memberId } = body;
+    if (!lineUserId || !memberId) return c.json({ error: "Missing fields" }, 400);
+
+    const user = await upsertUserFromLiff(lineUserId, "");
+
+    const { kickMember } = await import("./services/member.js");
+    const result = await kickMember(c.req.param("id"), memberId, user.id);
+    if (!result.ok) return c.json({ error: result.reason }, 400);
+    return c.json({ status: "ok" });
+  } catch (err) {
+    return c.json({ error: "Failed" }, 500);
+  }
+});
+
+// Join group from LIFF
+app.post("/groups/:id/join", async (c) => {
+  try {
+    const body = await c.req.json();
+    const lineUserId = body.lineUserId;
+    if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+
+    const user = await upsertUserFromLiff(lineUserId, body.displayName || "");
+
+    const { joinGroup } = await import("./services/member.js");
+    const result = await joinGroup(c.req.param("id"), user.id);
+
+    if (!result.ok) {
+      const msgs: Record<string, string> = {
+        not_found: "找不到這個團",
+        full: "已額滿",
+        already_joined: "你已經加入了",
+        cancelled: "已取消",
+        is_host: "你是團主",
+      };
+      return c.json({ error: msgs[result.reason] || result.reason }, 400);
+    }
+    return c.json({ status: "ok" });
+  } catch (err) {
+    return c.json({ error: "Failed" }, 500);
+  }
 });
 
 export default app;
