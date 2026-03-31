@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>分享彙整</title>
+    <title>分享</title>
     <style>
       * {
         box-sizing: border-box;
@@ -15,66 +15,40 @@
         background: #f5f6f8;
         color: #1a1a1a;
         min-height: 100vh;
-        min-height: 100dvh;
-        padding-bottom: env(safe-area-inset-bottom, 0);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
       }
-      .header {
-        background: linear-gradient(135deg, #06c755 0%, #05a647 100%);
-        padding: 24px 20px 20px;
-        text-align: center;
-        color: white;
-      }
-      .header h1 {
-        font-size: 20px;
-        font-weight: 700;
-      }
-      .header p {
-        font-size: 13px;
-        opacity: 0.85;
-        margin-top: 4px;
-      }
-      .content {
-        padding: 16px;
-      }
-      .section {
+      .card {
         background: white;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        max-width: 360px;
+        width: 100%;
+        text-align: center;
       }
-      .group-count {
-        font-size: 14px;
+      h1 {
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+      p {
+        font-size: 13px;
         color: #888;
-        margin-bottom: 12px;
-      }
-      .group-item {
-        padding: 10px 0;
-        border-bottom: 1px solid #f0f0f0;
-      }
-      .group-item:last-child {
-        border-bottom: none;
-      }
-      .gi-name {
-        font-size: 15px;
-        font-weight: 600;
-      }
-      .gi-info {
-        font-size: 12px;
-        color: #888;
-        margin-top: 4px;
+        margin-bottom: 20px;
       }
       .share-btn {
         width: 100%;
-        padding: 16px;
+        padding: 14px;
         background: #06c755;
         color: white;
         border: none;
-        border-radius: 12px;
-        font-size: 17px;
+        border-radius: 10px;
+        font-size: 16px;
         font-weight: 700;
         cursor: pointer;
-        margin-top: 4px;
       }
       .share-btn:active {
         opacity: 0.9;
@@ -82,19 +56,7 @@
       .share-btn:disabled {
         background: #ccc;
       }
-      .alt-btn {
-        width: 100%;
-        padding: 12px;
-        background: none;
-        border: 1.5px solid #e0e0e0;
-        border-radius: 10px;
-        font-size: 14px;
-        color: #888;
-        cursor: pointer;
-        margin-top: 8px;
-      }
       .status {
-        text-align: center;
         margin-top: 12px;
         font-size: 13px;
         color: #888;
@@ -106,31 +68,18 @@
         color: #e53e3e;
       }
       .loading {
-        text-align: center;
-        padding: 40px 0;
-        color: #999;
-      }
-      .empty {
-        text-align: center;
-        padding: 32px;
-        color: #bbb;
         font-size: 14px;
+        color: #999;
       }
     </style>
   </head>
   <body>
-    <div class="header">
-      <h1>分享開團彙整</h1>
-      <p>選擇聊天室分享漂亮的開團卡片</p>
-    </div>
-    <div class="content">
+    <div class="card">
       <div id="loading" class="loading">載入中...</div>
       <div id="main" style="display: none">
-        <div class="section" id="preview"></div>
-        <div class="share-area">
-          <button class="share-btn" id="shareFlexBtn" disabled>分享卡片到聊天室</button>
-          <button class="alt-btn" id="shareTextBtn" disabled>分享純文字版本</button>
-        </div>
+        <h1 id="title">分享</h1>
+        <p id="desc">選擇聊天室分享開團卡片</p>
+        <button class="share-btn" id="shareBtn" onclick="share()">分享到聊天室</button>
         <div class="status" id="status"></div>
       </div>
     </div>
@@ -139,9 +88,7 @@
     <script>
       const LIFF_ID = "2009659299-rbF8C1zz";
       const API = "https://escape-group.vercel.app/api";
-      const DAYS = ["日", "一", "二", "三", "四", "五", "六"];
-      let flexCards = [];
-      let textSummary = "";
+      let messages = [];
 
       async function init() {
         await liff.init({ liffId: LIFF_ID });
@@ -150,72 +97,51 @@
           return;
         }
 
-        const res = await fetch(`${API}/summary-text`);
-        const data = await res.json();
-        textSummary = data.text;
-        flexCards = data.flex || [];
+        const params = new URLSearchParams(window.location.search);
+        const groupId = params.get("groupId");
 
-        renderPreview(data);
+        if (groupId) {
+          // Single group share
+          const res = await fetch(`${API}/groups/${groupId}/card`);
+          const data = await res.json();
+          if (data.flexCard) {
+            messages = [data.flexCard];
+            document.getElementById("title").textContent = "分享開團卡片";
+            document.getElementById("desc").textContent = "選擇聊天室分享此團的卡片";
+          }
+        } else {
+          // Daily summary share
+          const res = await fetch(`${API}/summary-text`);
+          const data = await res.json();
+          if (data.flex && data.flex.length > 0) {
+            messages = data.flex.slice(0, 5);
+            document.getElementById("title").textContent = "分享開團彙整";
+            document.getElementById("desc").textContent =
+              `${messages.length > 1 ? "多個團的" : ""}開團卡片`;
+          } else if (data.text) {
+            messages = [{ type: "text", text: data.text }];
+            document.getElementById("title").textContent = "分享開團彙整";
+            document.getElementById("desc").textContent = "純文字版本";
+          }
+        }
 
-        document.getElementById("shareFlexBtn").disabled = false;
-        document.getElementById("shareTextBtn").disabled = false;
+        if (messages.length === 0) {
+          document.getElementById("title").textContent = "沒有可分享的內容";
+          document.getElementById("desc").textContent = "目前沒有開放的團";
+          document.getElementById("shareBtn").style.display = "none";
+        }
+
         document.getElementById("loading").style.display = "none";
         document.getElementById("main").style.display = "block";
-
-        document.getElementById("shareFlexBtn").addEventListener("click", () => shareFlex());
-        document.getElementById("shareTextBtn").addEventListener("click", () => shareText());
       }
 
-      function renderPreview(data) {
-        const el = document.getElementById("preview");
-        // Parse text to count groups
-        const lines = textSummary.split("\n").filter((l) => l.startsWith("▸"));
-        if (lines.length === 0) {
-          el.innerHTML = '<div class="empty">目前沒有開放的團</div>';
-          document.getElementById("shareFlexBtn").style.display = "none";
-          document.getElementById("shareTextBtn").style.display = "none";
-          return;
-        }
-
-        let html = `<div class="group-count">${lines.length} 個團開放中</div>`;
-        for (const line of lines) {
-          const name = line.replace("▸ ", "").trim();
-          html += `<div class="group-item"><div class="gi-name">${name}</div></div>`;
-        }
-        el.innerHTML = html;
-      }
-
-      async function shareFlex() {
+      async function share() {
         if (!liff.isApiAvailable("shareTargetPicker")) {
           setStatus("err", "此環境不支援分享功能");
           return;
         }
         try {
-          // shareTargetPicker accepts up to 5 messages, each flex can have 12 bubbles
-          const messages = flexCards.slice(0, 5);
-          if (messages.length === 0) {
-            shareText();
-            return;
-          }
           const result = await liff.shareTargetPicker(messages);
-          if (result) {
-            setStatus("ok", "已分享！");
-            setTimeout(() => liff.closeWindow(), 1000);
-          } else {
-            setStatus("", "已取消");
-          }
-        } catch (e) {
-          setStatus("err", "分享失敗：" + e.message);
-        }
-      }
-
-      async function shareText() {
-        if (!liff.isApiAvailable("shareTargetPicker")) {
-          setStatus("err", "此環境不支援分享功能");
-          return;
-        }
-        try {
-          const result = await liff.shareTargetPicker([{ type: "text", text: textSummary }]);
           if (result) {
             setStatus("ok", "已分享！");
             setTimeout(() => liff.closeWindow(), 1000);

@@ -63,9 +63,25 @@ app.post("/groups", async (c) => {
     };
     try {
       const hostCard = buildGroupCard(cardData);
+      // Add share button to the card for the host
+      const cardWithShare = JSON.parse(JSON.stringify(hostCard));
+      const bubble = cardWithShare.contents;
+      if (bubble.footer) {
+        bubble.footer.contents.push({
+          type: "button",
+          style: "secondary",
+          height: "sm",
+          margin: "sm",
+          action: {
+            type: "uri",
+            label: "分享到聊天室",
+            uri: `https://liff.line.me/2009659299-rbF8C1zz/share/?groupId=${group.id}`,
+          },
+        });
+      }
       await client.pushMessage({
         to: lineUserId,
-        messages: [{ type: "text", text: "開團成功！長按下方卡片可以轉發到聊天室 👇" }, hostCard],
+        messages: [cardWithShare],
       });
     } catch (err) {
       console.error("Failed to send card to host:", err);
@@ -153,6 +169,29 @@ app.post("/groups", async (c) => {
     console.error("Create group error:", message, err);
     return c.json({ error: message }, 500);
   }
+});
+
+// Get single group's Flex card for sharing
+app.get("/groups/:id/card", async (c) => {
+  const { getGroupById, getGroupMemberCount } = await import("./services/group.js");
+  const group = await getGroupById(c.req.param("id"));
+  if (!group) return c.json({ error: "Not found" }, 404);
+
+  const [host] = await db
+    .select({ displayName: users.displayName })
+    .from(users)
+    .where(eq(users.id, group.hostId))
+    .limit(1);
+
+  const memberCount = await getGroupMemberCount(group.id);
+  const card = buildGroupCard({
+    ...group,
+    hostName: host?.displayName ?? "Unknown",
+    currentMembers: group.prefilledMembers + memberCount,
+    price: group.price,
+  });
+
+  return c.json({ flexCard: card });
 });
 
 // Text summary for sharing to OpenChat
