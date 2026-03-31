@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { verifySignature } from "./line/verify.js";
 import { handleWebhookEvents } from "./handlers/webhook.js";
 import { validateCreateGroupInput, createGroup } from "./services/group.js";
@@ -9,6 +10,8 @@ import { buildGroupCard } from "./line/flex/group-card.js";
 import { getLineClient } from "./line/client.js";
 
 const app = new Hono().basePath("/api");
+
+app.use("/groups", cors());
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
