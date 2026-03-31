@@ -127,7 +127,15 @@ app.post("/groups", async (c) => {
       console.error("Subscriber notification failed:", err);
     }
 
-    return c.json({ id: group.id, status: "created" }, 201);
+    // Build Flex card for shareTargetPicker
+    const flexCard = buildGroupCard({
+      ...group,
+      hostName: user.displayName,
+      currentMembers: group.prefilledMembers,
+      price: group.price,
+    });
+
+    return c.json({ id: group.id, status: "created", flexCard }, 201);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("Create group error:", message, err);
@@ -170,7 +178,11 @@ app.get("/summary-text", async (c) => {
     hostName: hostMap.get(g.hostId),
   }));
 
-  return c.json({ text: buildTextSummary(summaryGroups) });
+  const { buildSummaryCards } = await import("./line/flex/summary.js");
+  const text = buildTextSummary(summaryGroups);
+  const cards = buildSummaryCards(summaryGroups);
+
+  return c.json({ text, flex: cards });
 });
 
 app.get("/groups", async (c) => {

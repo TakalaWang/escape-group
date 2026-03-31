@@ -247,6 +247,29 @@
         }
       }
 
+      .share-openchat-btn {
+        margin-top: 20px;
+        padding: 14px 32px;
+        background: #06c755;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        animation: fadeIn 0.3s ease 0.5s both;
+      }
+      .share-openchat-btn:active {
+        opacity: 0.9;
+      }
+      .close-link {
+        margin-top: 12px;
+        font-size: 14px;
+        color: #999;
+        cursor: pointer;
+        animation: fadeIn 0.3s ease 0.8s both;
+      }
+
       @media (prefers-reduced-motion: reduce) {
         *,
         *::before,
@@ -400,7 +423,18 @@
         </svg>
       </div>
       <div class="success-text">開團成功</div>
-      <div class="success-sub">已在大群發布公告</div>
+      <div class="success-sub">訂閱者已收到通知</div>
+      <button
+        class="share-openchat-btn"
+        id="shareBtn"
+        style="display: none"
+        onclick="shareToChat()"
+      >
+        分享到聊天室
+      </button>
+      <div class="close-link" id="closeLink" style="display: none" onclick="liff.closeWindow()">
+        關閉
+      </div>
     </div>
 
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -425,13 +459,30 @@
         el.style.display = "block";
       }
 
+      let createdFlexCard = null;
+
       function showSuccess() {
         document.getElementById("successOverlay").classList.add("show");
-        setTimeout(() => {
-          try {
-            liff.closeWindow();
-          } catch (_) {}
-        }, 1500);
+        if (createdFlexCard && liff.isApiAvailable("shareTargetPicker")) {
+          document.getElementById("shareBtn").style.display = "";
+          document.getElementById("closeLink").style.display = "";
+        } else {
+          setTimeout(() => {
+            try {
+              liff.closeWindow();
+            } catch (_) {}
+          }, 1500);
+        }
+      }
+
+      async function shareToChat() {
+        if (!createdFlexCard) return;
+        try {
+          await liff.shareTargetPicker([createdFlexCard]);
+          liff.closeWindow();
+        } catch (_) {
+          liff.closeWindow();
+        }
       }
 
       document.getElementById("form").addEventListener("submit", async (e) => {
@@ -483,9 +534,8 @@
             throw new Error(data.error || "開團失敗");
           }
 
-          try {
-            await liff.sendMessages([{ type: "text", text: "開團成功！已在大群發布公告。" }]);
-          } catch (_) {}
+          const result = await res.json();
+          createdFlexCard = result.flexCard || null;
 
           showSuccess();
         } catch (err) {
