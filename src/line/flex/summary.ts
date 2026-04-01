@@ -186,9 +186,10 @@ function buildBubble(g: SummaryGroup): messagingApi.FlexBubble {
           color: "#06C755",
           height: "sm",
           action: {
-            type: "uri",
-            label: "加入",
-            uri: `https://liff.line.me/2009659299-kwXd0ja5?join=${g.id}`,
+            type: "postback",
+            label: "我要加入 ✋",
+            data: `action=join&groupId=${g.id}`,
+            displayText: "我要加入！",
           },
         },
       ],

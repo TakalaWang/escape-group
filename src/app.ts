@@ -6,7 +6,7 @@ import { handleWebhookEvents } from "./handlers/webhook.js";
 import { validateCreateGroupInput, createGroup } from "./services/group.js";
 import { upsertUserFromLiff } from "./services/user.js";
 import { searchGroups, buildSearchQuery } from "./services/search.js";
-import { buildGroupCard } from "./line/flex/group-card.js";
+import { buildGroupCard, buildShareableGroupCard, LOCATION_LABELS } from "./line/flex/group-card.js";
 import { getLineClient } from "./line/client.js";
 import { db } from "./db/client.js";
 import { groupMembers, groups, groups as groupsTable, subscriptions, users } from "./db/schema.js";
@@ -62,16 +62,25 @@ app.post("/groups", async (c) => {
       price: group.price,
     };
     try {
-      // Build a card with only share button (no join button) for the host
-      const cardWithShare: any = {
+      // Build host card with share/copy buttons
+      const locationLabel = body.location ? (LOCATION_LABELS[body.location] ?? body.location) : "";
+      const dt = new Date(body.datetime);
+      const days = ["日", "一", "二", "三", "四", "五", "六"];
+      const dateStr = `${dt.getMonth() + 1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2, "0")}:${dt.getMinutes().toString().padStart(2, "0")}`;
+      const detailParts = [locationLabel, body.duration ? `${body.duration}分` : "", body.price ? `$${body.price}/人` : ""].filter(Boolean);
+      const clipText = `🎯 ${group.roomName}${body.studio ? `（${body.studio}）` : ""}\n📅 ${dateStr}${detailParts.length ? `\n📍 ${detailParts.join(" · ")}` : ""}\n👥 ${group.prefilledMembers}/${body.maxMembers}人\n\n👉 點此加入：\nhttps://liff.line.me/2009659299-kwXd0ja5?join=${group.id}`;
+
+      const hostCard: any = {
         type: "flex",
-        altText: `開團成功：${group.roomName}`,
+        altText: `✅ 開團成功：${group.roomName}`,
         contents: {
           ...JSON.parse(JSON.stringify(buildGroupCard(cardData).contents)),
           footer: {
             type: "box",
             layout: "vertical",
             paddingAll: "12px",
+            paddingTop: "0px",
+            spacing: "sm",
             contents: [
               {
                 type: "button",
@@ -80,8 +89,29 @@ app.post("/groups", async (c) => {
                 height: "sm",
                 action: {
                   type: "uri",
-                  label: "分享到聊天室",
+                  label: "分享卡片 📤（好友/群組）",
                   uri: `https://liff.line.me/2009659299-rbF8C1zz?share=${group.id}`,
+                },
+              },
+              {
+                type: "button",
+                style: "secondary",
+                height: "sm",
+                action: {
+                  type: "clipboard",
+                  label: "複製文字 📋（貼到社群）",
+                  clipboardText: clipText,
+                },
+              },
+              {
+                type: "button",
+                style: "secondary",
+                height: "sm",
+                action: {
+                  type: "postback",
+                  label: "複製全部團 📋",
+                  data: "action=copy_all_groups",
+                  displayText: "複製全部團",
                 },
               },
             ],
@@ -90,7 +120,7 @@ app.post("/groups", async (c) => {
       };
       await client.pushMessage({
         to: lineUserId,
-        messages: [cardWithShare],
+        messages: [hostCard],
       });
     } catch (err) {
       console.error("Failed to send card to host:", err);
@@ -150,10 +180,8 @@ app.post("/groups", async (c) => {
           await lineClient.pushMessage({
             to: sub.lineUserId,
             messages: [
-              {
-                type: "text",
-                text: `🔔 新團通知：「${body.roomName}」${body.studio ? ` (${body.studio})` : ""}${body.price ? ` ${body.price}元/人` : ""} 正在揪人！`,
-              },
+              { type: "text", text: "🔔 新團符合你的訂閱！" },
+              buildGroupCard(cardData),
             ],
           });
         } catch (e) {
@@ -164,8 +192,8 @@ app.post("/groups", async (c) => {
       console.error("Subscriber notification failed:", err);
     }
 
-    // Build Flex card for shareTargetPicker
-    const flexCard = buildGroupCard({
+    // Build Flex card for shareTargetPicker (uses URI for join since recipients may not have bot)
+    const flexCard = buildShareableGroupCard({
       ...group,
       hostName: user.displayName,
       currentMembers: group.prefilledMembers,
@@ -193,7 +221,7 @@ app.get("/groups/:id/card", async (c) => {
     .limit(1);
 
   const memberCount = await getGroupMemberCount(group.id);
-  const card = buildGroupCard({
+  const card = buildShareableGroupCard({
     ...group,
     hostName: host?.displayName ?? "Unknown",
     currentMembers: group.prefilledMembers + memberCount,
@@ -381,6 +409,78 @@ app.get("/groups/:id/members", async (c) => {
   return c.json(members);
 });
 
+// Get single group data (for edit form)
+app.get("/groups/:id", async (c) => {
+  const { getGroupById } = await import("./services/group.js");
+  const group = await getGroupById(c.req.param("id"));
+  if (!group) return c.json({ error: "Not found" }, 404);
+  return c.json(group);
+});
+
+// Update group
+app.put("/groups/:id", async (c) => {
+  try {
+    const body = await c.req.json();
+    const lineUserId = body.lineUserId;
+    if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+
+    const user = await upsertUserFromLiff(lineUserId, "");
+    const { getGroupById, updateGroup, getGroupMembers } = await import("./services/group.js");
+    const group = await getGroupById(c.req.param("id"));
+    if (!group) return c.json({ error: "Not found" }, 404);
+    if (group.hostId !== user.id) return c.json({ error: "Not host" }, 403);
+
+    const updates: Record<string, any> = {};
+    if (body.roomName !== undefined) updates.roomName = body.roomName.trim();
+    if (body.studio !== undefined) updates.studio = body.studio?.trim() || null;
+    if (body.location !== undefined) updates.location = body.location || null;
+    if (body.datetime !== undefined) updates.datetime = body.datetime ? new Date(body.datetime) : null;
+    if (body.duration !== undefined) updates.duration = body.duration ?? null;
+    if (body.minMembers !== undefined) updates.minMembers = body.minMembers ?? null;
+    if (body.maxMembers !== undefined) updates.maxMembers = body.maxMembers;
+    if (body.prefilledMembers !== undefined) updates.prefilledMembers = body.prefilledMembers;
+    if (body.price !== undefined) updates.price = body.price ?? null;
+    if (body.note !== undefined) updates.note = body.note?.trim() || null;
+
+    const updated = await updateGroup(c.req.param("id"), updates);
+
+    // Build change summary for notification
+    const changes: string[] = [];
+    if (body.datetime !== undefined && group.datetime?.toISOString() !== updates.datetime?.toISOString()) {
+      const dt = updates.datetime;
+      if (dt) {
+        const days = ["日", "一", "二", "三", "四", "五", "六"];
+        changes.push(`📅 時間 → ${dt.getMonth()+1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2,"0")}:${dt.getMinutes().toString().padStart(2,"0")}`);
+      }
+    }
+    if (body.maxMembers !== undefined && body.maxMembers !== group.maxMembers) changes.push(`👥 人數上限 → ${body.maxMembers}`);
+    if (body.price !== undefined && body.price !== group.price) changes.push(`💰 費用 → $${body.price}/人`);
+    if (body.roomName !== undefined && body.roomName.trim() !== group.roomName) changes.push(`🎯 名稱 → ${body.roomName.trim()}`);
+    if (body.duration !== undefined && body.duration !== group.duration) changes.push(`⏱ 時長 → ${body.duration}分`);
+
+    // Notify members if there are changes
+    if (changes.length > 0) {
+      try {
+        const members = await getGroupMembers(c.req.param("id"));
+        const lineClient = getLineClient();
+        const text = `📢 「${updated.roomName}」已更新：\n${changes.join("\n")}`;
+        for (const member of members) {
+          try {
+            await lineClient.pushMessage({ to: member.lineUserId, messages: [{ type: "text", text }] });
+          } catch (e) { /* skip failed */ }
+        }
+      } catch (e) {
+        console.error("Failed to notify members of update:", e);
+      }
+    }
+
+    return c.json({ status: "ok", group: updated });
+  } catch (err: any) {
+    console.error("Update group error:", err?.message);
+    return c.json({ error: "Failed" }, 500);
+  }
+});
+
 // Cancel group
 app.post("/groups/:id/cancel", async (c) => {
   try {
@@ -434,6 +534,38 @@ app.post("/groups/:id/leave", async (c) => {
   }
 });
 
+// Cron: daily summary
+app.post("/cron/daily-summary", async (c) => {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && c.req.header("authorization") !== `Bearer ${cronSecret}`) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  try {
+    const { runDailySummary } = await import("./cron/daily-summary.js");
+    await runDailySummary();
+    return c.json({ status: "ok" });
+  } catch (err) {
+    console.error("Daily summary cron failed:", err);
+    return c.json({ error: "Failed" }, 500);
+  }
+});
+
+// Cron: reminders
+app.post("/cron/reminders", async (c) => {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && c.req.header("authorization") !== `Bearer ${cronSecret}`) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  try {
+    const { runReminders } = await import("./cron/reminders.js");
+    await runReminders();
+    return c.json({ status: "ok" });
+  } catch (err) {
+    console.error("Reminders cron failed:", err);
+    return c.json({ error: "Failed" }, 500);
+  }
+});
+
 // Join group from LIFF
 app.post("/groups/:id/join", async (c) => {
   try {
@@ -457,10 +589,14 @@ app.post("/groups/:id/join", async (c) => {
       return c.json({ error: msgs[result.reason] || result.reason }, 400);
     }
 
-    // Notify host of new member
+    // Get group info for response + host notification
+    const { getGroupById, getGroupMemberCount } = await import("./services/group.js");
+    const group = await getGroupById(c.req.param("id"));
+    const memberCount = group ? await getGroupMemberCount(c.req.param("id")) : 0;
+    const currentMembers = (group?.prefilledMembers ?? 1) + memberCount;
+
+    // Notify host (non-blocking, don't let failure block response)
     try {
-      const { getGroupById } = await import("./services/group.js");
-      const group = await getGroupById(c.req.param("id"));
       if (group) {
         const [host] = await db.select().from(users).where(eq(users.id, group.hostId)).limit(1);
         if (host) {
@@ -480,9 +616,23 @@ app.post("/groups/:id/join", async (c) => {
       console.error("Failed to notify host:", e);
     }
 
-    return c.json({ status: "ok" });
-  } catch (err) {
-    return c.json({ error: "Failed" }, 500);
+    // Return group info + botBasicId for LIFF UX
+    let botBasicId = "";
+    try {
+      const { getBotBasicId } = await import("./line/client.js");
+      botBasicId = await getBotBasicId();
+    } catch (e) { /* non-critical */ }
+
+    return c.json({
+      status: "ok",
+      botBasicId,
+      groupName: group?.roomName ?? "",
+      currentMembers,
+      maxMembers: group?.maxMembers ?? 0,
+    });
+  } catch (err: any) {
+    console.error("Join group error:", err?.message || err);
+    return c.json({ error: "Failed", detail: err?.message }, 500);
   }
 });
 

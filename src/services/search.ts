@@ -55,7 +55,7 @@ export async function searchGroups(filters: SearchFilters) {
       hostName: users.displayName,
       memberCount: sql<number>`(
         SELECT count(*)::int FROM group_members
-        WHERE group_members.group_id = ${groups.id}
+        WHERE group_members.group_id = groups.id
       )`,
     })
     .from(groups)

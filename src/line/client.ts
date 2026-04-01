@@ -10,3 +10,14 @@ export function getLineClient(): messagingApi.MessagingApiClient {
   }
   return _client;
 }
+
+let _botBasicId: string | null = null;
+
+export async function getBotBasicId(): Promise<string> {
+  if (!_botBasicId) {
+    const client = getLineClient();
+    const info = await client.getBotInfo();
+    _botBasicId = info.basicId;
+  }
+  return _botBasicId;
+}

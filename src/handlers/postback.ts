@@ -6,12 +6,17 @@ import {
   getGroupById,
   getGroupMemberCount,
   getGroupsByHost,
+  getJoinedGroups,
   cancelGroup,
   getGroupMembers,
 } from "../services/group.js";
 import { searchGroups, buildSearchQuery } from "../services/search.js";
 import { buildSummaryCard } from "../line/flex/summary.js";
-import { buildMyGroupsCard } from "../line/flex/my-groups.js";
+import { buildMyGroupsCard, buildJoinedGroupsCard } from "../line/flex/my-groups.js";
+import {
+  buildJoinNotification,
+  buildGroupFullNotification,
+} from "../line/flex/notifications.js";
 import { db } from "../db/client.js";
 import { users, subscriptions } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
@@ -38,28 +43,30 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       const user = await upsertUser(userId);
       const result = await joinGroup(groupId, user.id);
 
-      const messages: Record<string, string> = {
-        not_found: "找不到這個團，可能已被取消。",
-        full: "這個團已經額滿了！",
-        already_joined: "你已經加入這個團了。",
-        cancelled: "這個團已被取消。",
-        is_host: "你是團主，不需要加入自己的團。",
-      };
-
       if (!result.ok) {
-        await client.pushMessage({
-          to: userId,
+        const messages: Record<string, string> = {
+          not_found: "找不到這個團，可能已被取消。",
+          full: "這個團已經額滿了！",
+          already_joined: "你已經加入這個團了。",
+          cancelled: "這個團已被取消。",
+          is_host: "你是團主，不需要加入自己的團。",
+        };
+        await client.replyMessage({
+          replyToken: event.replyToken,
           messages: [{ type: "text", text: messages[result.reason] }],
         });
         return;
       }
 
-      const group = await getGroupById(groupId);
-      const memberCount = await getGroupMemberCount(groupId);
+      const [group, memberCount] = await Promise.all([
+        getGroupById(groupId),
+        getGroupMemberCount(groupId),
+      ]);
       const current = (group?.prefilledMembers ?? 1) + memberCount;
 
-      await client.pushMessage({
-        to: userId,
+      // Reply to joiner immediately, notify host in background
+      await client.replyMessage({
+        replyToken: event.replyToken,
         messages: [
           {
             type: "text",
@@ -68,47 +75,47 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
         ],
       });
 
-      // Notify host of new member
+      // Notify host (non-blocking)
       try {
         const [host] = await db.select().from(users).where(eq(users.id, group!.hostId)).limit(1);
-        if (host && !result.groupFull) {
-          await client.pushMessage({
-            to: host.lineUserId,
-            messages: [
-              {
-                type: "text",
-                text: `有人加入你的團「${group?.roomName}」！目前 ${current}/${group?.maxMembers} 人。`,
-              },
-            ],
-          });
+        if (host) {
+          const joinerName = user.displayName || "某人";
+          if (result.groupFull) {
+            const days = ["日", "一", "二", "三", "四", "五", "六"];
+            const dt = group!.datetime;
+            const dateStr = dt
+              ? `${dt.getMonth() + 1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2, "0")}:${dt.getMinutes().toString().padStart(2, "0")}`
+              : "";
+            await client.pushMessage({
+              to: host.lineUserId,
+              messages: [buildGroupFullNotification(group!.roomName, group!.maxMembers, dateStr)],
+            });
+          } else {
+            await client.pushMessage({
+              to: host.lineUserId,
+              messages: [
+                buildJoinNotification(joinerName, group!.roomName, current, group!.maxMembers),
+              ],
+            });
+          }
         }
       } catch (e) {
         console.error("Failed to notify host:", e);
-      }
-
-      if (result.groupFull && group) {
-        const [host] = await db.select().from(users).where(eq(users.id, group.hostId)).limit(1);
-        if (host) {
-          await client.pushMessage({
-            to: host.lineUserId,
-            messages: [
-              {
-                type: "text",
-                text: `🎉 你的團「${group.roomName}」已滿員！\n\n請建立 LINE 群組，然後把邀請連結貼回來給我。`,
-              },
-            ],
-          });
-        }
       }
       break;
     }
     case "my_groups": {
       const user = await upsertUser(userId);
-      const myGroups = await getGroupsByHost(user.id);
-      const card = buildMyGroupsCard(myGroups);
+      const [myGroups, joined] = await Promise.all([
+        getGroupsByHost(user.id),
+        getJoinedGroups(user.id),
+      ]);
       await client.replyMessage({
         replyToken: event.replyToken,
-        messages: [card],
+        messages: [
+          buildMyGroupsCard(myGroups),
+          buildJoinedGroupsCard(joined),
+        ],
       });
       break;
     }
@@ -116,10 +123,28 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       const groupId = data.get("groupId");
       if (!groupId) return;
       const user = await upsertUser(userId);
+      const group = await getGroupById(groupId);
+      if (!group) return;
+
+      // Get members before cancelling
+      const members = await getGroupMembers(groupId);
       await cancelGroup(groupId, user.id);
+
+      // Notify all members
+      for (const member of members) {
+        try {
+          await client.pushMessage({
+            to: member.lineUserId,
+            messages: [{ type: "text", text: `❌ 「${group.roomName}」已被團主取消。` }],
+          });
+        } catch (e) {
+          console.error("Failed to notify member of cancellation:", e);
+        }
+      }
+
       await client.replyMessage({
         replyToken: event.replyToken,
-        messages: [{ type: "text", text: "✅ 已取消此團。" }],
+        messages: [{ type: "text", text: "✅ 已取消此團，已通知所有成員。" }],
       });
       break;
     }
@@ -146,17 +171,19 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
               altText: `${user.displayName} 想退出「${group.roomName}」`,
               contents: {
                 type: "bubble",
+                size: "kilo",
                 body: {
                   type: "box",
                   layout: "vertical",
+                  paddingAll: "16px",
                   contents: [
-                    { type: "text", text: "退團申請", weight: "bold", size: "lg" },
+                    { type: "text", text: `${user.displayName} 想退出`, size: "sm", weight: "bold" },
                     {
                       type: "text",
-                      text: `${user.displayName} 想退出「${group.roomName}」`,
+                      text: `「${group.roomName}」`,
                       size: "sm",
-                      margin: "md",
-                      wrap: true,
+                      color: "#888888",
+                      margin: "xs",
                     },
                   ],
                 },
@@ -164,6 +191,8 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
                   type: "box",
                   layout: "horizontal",
                   spacing: "sm",
+                  paddingAll: "12px",
+                  paddingTop: "0px",
                   contents: [
                     {
                       type: "button",
@@ -172,7 +201,7 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
                       height: "sm",
                       action: {
                         type: "postback",
-                        label: "同意",
+                        label: "同意 ✓",
                         data: `action=approve_leave&groupId=${groupId}&userId=${user.id}`,
                       },
                     },
@@ -182,7 +211,7 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
                       height: "sm",
                       action: {
                         type: "postback",
-                        label: "拒絕",
+                        label: "拒絕 ✗",
                         data: `action=reject_leave&groupId=${groupId}&memberId=${user.lineUserId}`,
                       },
                     },
@@ -539,6 +568,66 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       await client.replyMessage({
         replyToken: event.replyToken,
         messages: [{ type: "text", text: "請輸入搜尋關鍵字（密室名稱或工作室）：" }],
+      });
+      break;
+    }
+    case "copy_all_groups": {
+      const { buildTextSummary } = await import("../cron/daily-summary.js");
+      const allOpen = await searchGroups(buildSearchQuery({}));
+      const summaryGroups = allOpen.map((r) => ({
+        id: r.id,
+        roomName: r.roomName,
+        studio: (r as any).studio ?? null,
+        location: (r as any).location ?? null,
+        datetime: r.datetime,
+        duration: (r as any).duration ?? null,
+        minMembers: null,
+        maxMembers: r.maxMembers,
+        currentMembers: r.currentMembers,
+        price: (r as any).price ?? null,
+        hostName: (r as any).hostName ?? undefined,
+      }));
+      const text = buildTextSummary(summaryGroups);
+      await client.replyMessage({
+        replyToken: event.replyToken,
+        messages: [
+          {
+            type: "flex",
+            altText: "複製全部團",
+            contents: {
+              type: "bubble",
+              size: "kilo",
+              body: {
+                type: "box",
+                layout: "vertical",
+                paddingAll: "16px",
+                contents: [
+                  { type: "text", text: `📋 ${allOpen.length} 團開放中`, weight: "bold", size: "sm" },
+                  { type: "text", text: "點下方按鈕複製彙整文字", size: "xs", color: "#888888", margin: "xs" },
+                ],
+              },
+              footer: {
+                type: "box",
+                layout: "vertical",
+                paddingAll: "12px",
+                paddingTop: "0px",
+                contents: [
+                  {
+                    type: "button",
+                    style: "primary",
+                    color: "#06C755",
+                    height: "sm",
+                    action: {
+                      type: "clipboard" as any,
+                      label: "複製全部團 📋",
+                      clipboardText: text,
+                    } as any,
+                  },
+                ],
+              },
+            },
+          },
+        ],
       });
       break;
     }

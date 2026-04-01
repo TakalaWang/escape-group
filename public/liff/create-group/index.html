@@ -350,15 +350,22 @@
           color: #1a1a1a;
         }
       }
+      body.share-mode .share-hide { display: none !important; }
+      body.share-mode #shareLoading { display: block !important; }
     </style>
   </head>
   <body>
-    <div class="header">
+    <script>if(location.search.includes("share"))document.body.classList.add("share-mode");</script>
+    <div class="header share-hide">
       <h1>開團</h1>
-      <p>填寫以下資訊，Bot 會自動在大群發布公告</p>
+      <p>填寫以下資訊，開團後別人可以直接加入你的團</p>
+    </div>
+    <div id="shareLoading" class="share-only" style="display:none;padding:60px 20px;text-align:center;">
+      <div class="spinner"></div>
+      <p style="margin-top:16px;color:#888;">正在準備分享...</p>
     </div>
 
-    <form id="form">
+    <form id="form" class="share-hide">
       <div class="form-wrapper">
         <!-- Section: 密室資訊 -->
         <div class="section">
@@ -429,7 +436,7 @@
           <div class="section-title">活動設定</div>
           <div class="form-group">
             <label>活動時間 <span class="required-mark">*</span></label>
-            <input type="datetime-local" id="datetime" required />
+            <input type="datetime-local" id="datetime" step="300" required />
           </div>
           <div class="form-group">
             <label>遊戲時長 <span class="required-mark">*</span></label>
@@ -535,25 +542,30 @@
       </div>
       <div class="success-text">開團成功</div>
       <div class="success-sub">訂閱者已收到通知</div>
-      <button
-        class="share-openchat-btn"
-        id="shareBtn"
-        style="display: none"
-        onclick="shareToChat()"
-      >
-        分享到聊天室
-      </button>
-      <div class="close-link" id="closeLink" style="display: none" onclick="liff.closeWindow()">
-        關閉
+      <div id="successButtons" style="display:none;margin-top:20px;width:80%;max-width:280px">
+        <button onclick="copyGroupText()" style="width:100%;padding:10px;border:none;border-radius:8px;background:#f5f5f5;color:#333;font-size:14px;font-weight:600;margin-bottom:8px;cursor:pointer" id="copyTextBtn">
+          📋 複製文字（貼到社群）
+        </button>
+        <button onclick="shareToChat()" style="width:100%;padding:10px;border:none;border-radius:8px;background:#06C755;color:#fff;font-size:14px;font-weight:600;margin-bottom:8px;cursor:pointer;display:none" id="shareBtn">
+          📤 分享卡片（好友/群組）
+        </button>
+        <button onclick="liff.closeWindow()" style="width:100%;padding:10px;border:none;border-radius:8px;background:transparent;color:#888;font-size:14px;cursor:pointer">
+          關閉
+        </button>
       </div>
     </div>
 
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script>
       const LIFF_ID = "2009659299-rbF8C1zz";
+      const API = "https://escape-group.vercel.app/api";
 
       async function init() {
         try {
+          if (typeof liff === "undefined") {
+            showError("LIFF SDK 載入失敗，請重新整理頁面");
+            return;
+          }
           await liff.init({ liffId: LIFF_ID });
           if (!liff.isLoggedIn()) {
             liff.login();
@@ -562,11 +574,23 @@
 
           // Check if opened for sharing
           const params = new URLSearchParams(window.location.search);
+          const shareTextId = params.get("share-text");
+          if (shareTextId && liff.isApiAvailable("shareTargetPicker")) {
+            await handleTextShare(shareTextId);
+            return;
+          }
           const shareId = params.get("share");
           if (shareId && liff.isApiAvailable("shareTargetPicker")) {
             await handleAutoShare(shareId);
             return;
           }
+          // Check if edit mode
+          const editId = params.get("edit");
+          if (editId) {
+            await loadEditMode(editId);
+            return;
+          }
+
           // Set default datetime to next hour
           const now = new Date();
           now.setHours(now.getHours() + 1, 0, 0, 0);
@@ -580,29 +604,108 @@
         }
       }
 
+      let editGroupId = null;
+
+      async function loadEditMode(groupId) {
+        editGroupId = groupId;
+        try {
+          const res = await fetch(`${API}/groups/${groupId}`);
+          if (!res.ok) { showError("找不到此團"); return; }
+          const g = await res.json();
+
+          // Update header
+          document.querySelector(".header h1").textContent = "編輯團";
+          document.querySelector(".header p").textContent = "修改後會通知所有團員";
+          document.getElementById("submitBtn").textContent = "更新";
+
+          // Fill form fields
+          document.getElementById("roomName").value = g.roomName || "";
+          document.getElementById("studio").value = g.studio || "";
+          document.getElementById("location").value = g.location || "";
+          document.getElementById("price").value = g.price || "";
+          document.getElementById("maxMembers").value = g.maxMembers || "";
+          document.getElementById("prefilledMembers").value = g.prefilledMembers || 1;
+          document.getElementById("minMembers").value = g.minMembers || "";
+          document.getElementById("duration").value = g.duration || "";
+          document.getElementById("note").value = g.note || "";
+          if (g.datetime) {
+            const dt = new Date(g.datetime);
+            const y = dt.getFullYear();
+            const m = String(dt.getMonth() + 1).padStart(2, "0");
+            const d = String(dt.getDate()).padStart(2, "0");
+            const h = String(dt.getHours()).padStart(2, "0");
+            const min = String(dt.getMinutes()).padStart(2, "0");
+            document.getElementById("datetime").value = `${y}-${m}-${d}T${h}:${min}`;
+          }
+        } catch (e) {
+          showError("載入失敗：" + e.message);
+        }
+      }
+
+      async function handleTextShare(groupId) {
+        try {
+          const res = await fetch(`${API}/groups/${groupId}/card`);
+          if (!res.ok) throw new Error("取得團資訊失敗: " + res.status);
+          const data = await res.json();
+          const card = data.flexCard;
+          if (!card) throw new Error("找不到此團");
+          const joinUrl = `https://liff.line.me/2009659299-kwXd0ja5?join=${groupId}`;
+          const text = card.altText + "\n\n👉 點此加入：\n" + joinUrl;
+          const el = document.getElementById("shareLoading");
+          el.innerHTML =
+            '<textarea id="copyText" readonly style="width:100%;height:120px;font-size:14px;padding:12px;border:1px solid #ddd;border-radius:8px;resize:none;margin-bottom:12px;">' +
+            text.replace(/</g, "&lt;") + '</textarea>' +
+            '<button id="copyBtn" style="width:100%;padding:12px;background:#06C755;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;">複製文字</button>' +
+            '<p style="color:#888;font-size:13px;margin-top:8px;text-align:center;">複製後到社群聊天室貼上</p>';
+          document.getElementById("copyBtn").onclick = async function() {
+            try {
+              await navigator.clipboard.writeText(text);
+              this.textContent = "✅ 已複製！";
+              this.style.background = "#888";
+              setTimeout(() => liff.closeWindow(), 1500);
+            } catch (_) {
+              document.getElementById("copyText").select();
+              document.execCommand("copy");
+              this.textContent = "✅ 已複製！";
+              this.style.background = "#888";
+              setTimeout(() => liff.closeWindow(), 1500);
+            }
+          };
+        } catch (e) {
+          document.getElementById("shareLoading").innerHTML =
+            '<p style="color:#e53e3e;padding:20px;">載入失敗：' + e.message + '</p>';
+        }
+      }
+
       async function handleAutoShare(shareId) {
         try {
           let messages;
           if (shareId === "all") {
-            // Share daily summary
-            const res = await fetch("https://escape-group.vercel.app/api/summary-text");
+            const res = await fetch("${API}/summary-text");
+            if (!res.ok) throw new Error("取得彙整失敗: " + res.status);
             const data = await res.json();
             messages =
               data.flex && data.flex.length > 0
                 ? data.flex.slice(0, 5)
                 : [{ type: "text", text: data.text }];
           } else {
-            // Share single group card
             const res = await fetch(`https://escape-group.vercel.app/api/groups/${shareId}/card`);
+            if (!res.ok) throw new Error("取得卡片失敗: " + res.status);
             const data = await res.json();
             messages = data.flexCard ? [data.flexCard] : null;
           }
-          if (messages) {
-            await liff.shareTargetPicker(messages);
+          if (!messages) throw new Error("沒有可分享的內容");
+          const result = await liff.shareTargetPicker(messages);
+          if (result && result.status === "success") {
+            liff.closeWindow();
           }
+          // User cancelled - just close
           liff.closeWindow();
         } catch (e) {
-          liff.closeWindow();
+          // Show error instead of silently closing
+          document.getElementById("shareLoading").innerHTML =
+            '<p style="color:#e53e3e;padding:20px;">分享失敗：' + e.message + '</p>' +
+            '<p style="color:#888;font-size:14px;">請關閉此視窗重試</p>';
         }
       }
 
@@ -613,18 +716,34 @@
       }
 
       let createdFlexCard = null;
+      let createdClipText = "";
 
       function showSuccess() {
         document.getElementById("successOverlay").classList.add("show");
+        document.getElementById("successButtons").style.display = "";
         if (createdFlexCard && liff.isApiAvailable("shareTargetPicker")) {
           document.getElementById("shareBtn").style.display = "";
-          document.getElementById("closeLink").style.display = "";
-        } else {
-          setTimeout(() => {
-            try {
-              liff.closeWindow();
-            } catch (_) {}
-          }, 1500);
+        }
+      }
+
+      async function copyGroupText() {
+        const btn = document.getElementById("copyTextBtn");
+        try {
+          await navigator.clipboard.writeText(createdClipText);
+          btn.textContent = "✅ 已複製！";
+          setTimeout(() => { btn.textContent = "📋 複製文字（貼到社群）"; }, 1500);
+        } catch (e) {
+          // Fallback
+          const ta = document.createElement("textarea");
+          ta.value = createdClipText;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          btn.textContent = "✅ 已複製！";
+          setTimeout(() => { btn.textContent = "📋 複製文字（貼到社群）"; }, 1500);
         }
       }
 
@@ -670,44 +789,73 @@
             note: document.getElementById("note").value.trim() || undefined,
           };
 
+          const btnLabel = editGroupId ? "更新" : "開團";
           if (!payload.roomName) {
             showError("請填寫密室名稱");
             btn.disabled = false;
-            btn.textContent = "開團";
+            btn.textContent = btnLabel;
             return;
           }
           if (!payload.datetime) {
             showError("請選擇活動時間");
             btn.disabled = false;
-            btn.textContent = "開團";
+            btn.textContent = btnLabel;
             return;
           }
           if (!payload.duration) {
             showError("請填寫遊戲時長");
             btn.disabled = false;
-            btn.textContent = "開團";
+            btn.textContent = btnLabel;
             return;
           }
 
-          const res = await fetch("https://escape-group.vercel.app/api/groups", {
-            method: "POST",
+          const url = editGroupId
+            ? `${API}/groups/${editGroupId}`
+            : `${API}/groups`;
+          const method = editGroupId ? "PUT" : "POST";
+
+          const res = await fetch(url, {
+            method,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
 
           if (!res.ok) {
             const data = await res.json();
-            throw new Error(data.error || "開團失敗");
+            throw new Error(data.error || (editGroupId ? "更新失敗" : "開團失敗"));
           }
 
           const result = await res.json();
-          createdFlexCard = result.flexCard || null;
+          const groupId = editGroupId || result.id;
 
-          showSuccess();
+          if (editGroupId) {
+            // Edit mode: show success and close
+            document.getElementById("successOverlay").querySelector(".success-text").textContent = "更新成功";
+            document.getElementById("successOverlay").querySelector(".success-sub").textContent = "已通知所有團員";
+            document.getElementById("successOverlay").classList.add("show");
+            setTimeout(() => { try { liff.closeWindow(); } catch(_) {} }, 1500);
+          } else {
+            createdFlexCard = result.flexCard || null;
+
+            // Build clipboard text
+            const dt = payload.datetime ? new Date(payload.datetime) : null;
+            const days = ["日", "一", "二", "三", "四", "五", "六"];
+            const dateStr = dt ? `${dt.getMonth()+1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2,"0")}:${dt.getMinutes().toString().padStart(2,"0")}` : "";
+            const locSelect = document.getElementById("location");
+            const locLabel = locSelect.selectedIndex > 0 ? locSelect.options[locSelect.selectedIndex].text : "";
+            const detailParts = [locLabel, payload.duration ? `${payload.duration}分` : "", payload.price ? `$${payload.price}/人` : ""].filter(Boolean);
+            createdClipText = `🎯 ${payload.roomName}${payload.studio ? `（${payload.studio}）` : ""}` +
+              (dateStr ? `\n📅 ${dateStr}` : "") +
+              (detailParts.length ? `\n📍 ${detailParts.join(" · ")}` : "") +
+              `\n👥 ${payload.prefilledMembers}/${payload.maxMembers}人` +
+              `\n\n👉 點此加入：\nhttps://liff.line.me/2009659299-kwXd0ja5?join=${groupId}`;
+
+            showSuccess();
+          }
         } catch (err) {
           showError(err.message);
           btn.disabled = false;
-          btn.textContent = "開團";
+          btn.textContent = editGroupId ? "更新" : "開團";
         }
       });
 

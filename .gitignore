@@ -6,3 +6,5 @@ dist
 .vercel
 *.db
 .DS_Store
+.claude/settings.local.json
+.mcp.json

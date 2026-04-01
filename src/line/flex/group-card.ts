@@ -45,253 +45,162 @@ function formatDate(date: Date): string {
   const day = days[date.getDay()];
   const h = date.getHours().toString().padStart(2, "0");
   const min = date.getMinutes().toString().padStart(2, "0");
-  return `${m}/${d} (${day}) ${h}:${min}`;
+  return `${m}/${d}(${day}) ${h}:${min}`;
+}
+
+function buildProgressBar(current: number, max: number): messagingApi.FlexComponent {
+  const filled = Math.min(current, max);
+  const empty = max - filled;
+  const boxes: messagingApi.FlexComponent[] = [];
+
+  for (let i = 0; i < filled; i++) {
+    boxes.push({
+      type: "box",
+      layout: "vertical",
+      contents: [],
+      flex: 1,
+      height: "6px",
+      backgroundColor: "#06C755",
+      cornerRadius: "3px",
+    });
+  }
+  for (let i = 0; i < empty; i++) {
+    boxes.push({
+      type: "box",
+      layout: "vertical",
+      contents: [],
+      flex: 1,
+      height: "6px",
+      backgroundColor: "#E8E8E8",
+      cornerRadius: "3px",
+    });
+  }
+
+  return {
+    type: "box",
+    layout: "horizontal",
+    contents: boxes,
+    spacing: "xs",
+    margin: "lg",
+  };
+}
+
+function buildInfoLine(parts: string[]): messagingApi.FlexComponent {
+  return {
+    type: "text",
+    text: parts.join(" · "),
+    size: "sm",
+    color: "#888888",
+    wrap: true,
+  };
 }
 
 export function buildGroupCard(input: GroupCardInput): messagingApi.FlexMessage {
   const remaining = input.maxMembers - input.currentMembers;
   const locationLabel = input.location ? (LOCATION_LABELS[input.location] ?? input.location) : null;
 
-  // Info rows
-  const infoRows: messagingApi.FlexComponent[] = [];
+  // Title section
+  const titleContents: messagingApi.FlexComponent[] = [
+    {
+      type: "text",
+      text: `🎯 ${input.roomName}`,
+      weight: "bold",
+      size: "lg",
+      wrap: true,
+    },
+  ];
+
+  if (input.studio) {
+    titleContents.push({
+      type: "text",
+      text: input.studio,
+      size: "xs",
+      color: "#999999",
+      margin: "xs",
+    });
+  }
+
+  // Info lines
+  const infoContents: messagingApi.FlexComponent[] = [];
 
   if (input.datetime) {
-    infoRows.push({
-      type: "box",
-      layout: "baseline",
-      spacing: "sm",
+    infoContents.push({
+      type: "text",
+      text: `📅 ${formatDate(input.datetime)}`,
+      size: "sm",
+      color: "#888888",
+      margin: "lg",
+    });
+  }
+
+  const detailParts: string[] = [];
+  if (locationLabel) detailParts.push(locationLabel);
+  if (input.duration) detailParts.push(`${input.duration}分`);
+  if (input.price) detailParts.push(`$${input.price}/人`);
+
+  if (detailParts.length > 0) {
+    infoContents.push({
+      type: "text",
+      text: `📍 ${detailParts.join(" · ")}`,
+      size: "sm",
+      color: "#888888",
+      margin: "xs",
+    });
+  }
+
+  // Note
+  if (input.note) {
+    infoContents.push({
+      type: "text",
+      text: input.note,
+      size: "xs",
+      color: "#aaaaaa",
       margin: "md",
-      contents: [
-        {
-          type: "text",
-          text: "日期",
-          size: "xs",
-          color: "#aaaaaa",
-          flex: 0,
-          weight: "bold",
-        },
-        {
-          type: "text",
-          text: formatDate(input.datetime),
-          size: "sm",
-          color: "#333333",
-          flex: 1,
-          align: "end",
-        },
-      ],
+      wrap: true,
     });
   }
 
-  if (input.datetime && input.duration) {
-    const endTime = new Date(input.datetime.getTime() + input.duration * 60 * 1000);
-    const endH = endTime.getHours().toString().padStart(2, "0");
-    const endM = endTime.getMinutes().toString().padStart(2, "0");
-    infoRows.push({
+  // Progress bar + members
+  const membersSection: messagingApi.FlexComponent[] = [
+    buildProgressBar(input.currentMembers, input.maxMembers),
+    {
       type: "box",
-      layout: "baseline",
-      spacing: "sm",
+      layout: "horizontal",
       margin: "sm",
       contents: [
         {
           type: "text",
-          text: "時長",
+          text: remaining <= 0 ? "已額滿" : `還差 ${remaining} 人`,
+          size: "sm",
+          color: remaining <= 2 ? "#FF3B30" : "#06C755",
+          weight: "bold",
+          flex: 1,
+        },
+        {
+          type: "text",
+          text: `${input.currentMembers}/${input.maxMembers}人 · ${input.hostName}`,
           size: "xs",
           color: "#aaaaaa",
-          flex: 0,
-          weight: "bold",
-        },
-        {
-          type: "text",
-          text: `${input.duration}分鐘（~${endH}:${endM}）`,
-          size: "sm",
-          color: "#333333",
-          flex: 1,
           align: "end",
+          flex: 2,
         },
       ],
-    });
-  } else if (input.duration) {
-    infoRows.push({
-      type: "box",
-      layout: "baseline",
-      spacing: "sm",
-      margin: "sm",
-      contents: [
-        {
-          type: "text",
-          text: "時長",
-          size: "xs",
-          color: "#aaaaaa",
-          flex: 0,
-          weight: "bold",
-        },
-        {
-          type: "text",
-          text: `${input.duration} 分鐘`,
-          size: "sm",
-          color: "#333333",
-          flex: 1,
-          align: "end",
-        },
-      ],
-    });
-  }
-
-  if (locationLabel) {
-    infoRows.push({
-      type: "box",
-      layout: "baseline",
-      spacing: "sm",
-      margin: "sm",
-      contents: [
-        {
-          type: "text",
-          text: "地區",
-          size: "xs",
-          color: "#aaaaaa",
-          flex: 0,
-          weight: "bold",
-        },
-        {
-          type: "text",
-          text: locationLabel,
-          size: "sm",
-          color: "#333333",
-          flex: 1,
-          align: "end",
-        },
-      ],
-    });
-  }
-
-  if (input.price) {
-    infoRows.push({
-      type: "box",
-      layout: "baseline",
-      spacing: "sm",
-      margin: "sm",
-      contents: [
-        {
-          type: "text",
-          text: "費用",
-          size: "xs",
-          color: "#aaaaaa",
-          flex: 0,
-          weight: "bold",
-        },
-        {
-          type: "text",
-          text: `$${input.price}/人`,
-          size: "sm",
-          color: "#333333",
-          flex: 1,
-          align: "end",
-        },
-      ],
-    });
-  }
-
-  infoRows.push({
-    type: "box",
-    layout: "baseline",
-    spacing: "sm",
-    margin: "sm",
-    contents: [
-      {
-        type: "text",
-        text: "人數",
-        size: "xs",
-        color: "#aaaaaa",
-        flex: 0,
-        weight: "bold",
-      },
-      {
-        type: "text",
-        text: `${input.currentMembers}/${input.maxMembers}${input.minMembers ? ` (${input.minMembers}人成團)` : ""}`,
-        size: "sm",
-        color: "#333333",
-        flex: 1,
-        align: "end",
-      },
-    ],
-  });
+    },
+  ];
 
   const bubble: messagingApi.FlexBubble = {
     type: "bubble",
-    header: {
-      type: "box",
-      layout: "vertical",
-      backgroundColor: "#06C755",
-      paddingAll: "16px",
-      contents: [
-        {
-          type: "text",
-          text: input.roomName,
-          weight: "bold",
-          size: "lg",
-          color: "#ffffff",
-          wrap: true,
-        },
-        ...(input.studio
-          ? [
-              {
-                type: "text" as const,
-                text: input.studio,
-                size: "xs" as const,
-                color: "#ffffffcc" as const,
-                margin: "xs" as const,
-              },
-            ]
-          : []),
-      ],
-    },
     body: {
       type: "box",
       layout: "vertical",
-      spacing: "sm",
-      paddingAll: "16px",
-      contents: [
-        ...infoRows,
-        ...(input.note
-          ? [
-              {
-                type: "text" as const,
-                text: input.note,
-                size: "xs" as const,
-                color: "#666666",
-                margin: "lg" as const,
-                wrap: true,
-              },
-            ]
-          : []),
-        { type: "separator", margin: "lg" },
-        {
-          type: "box",
-          layout: "horizontal",
-          margin: "md",
-          contents: [
-            {
-              type: "text",
-              text: `還差 ${remaining} 人`,
-              size: "sm",
-              color: remaining <= 2 ? "#FF3B30" : "#06C755",
-              weight: "bold",
-            },
-            {
-              type: "text",
-              text: `團主：${input.hostName}`,
-              size: "xs",
-              color: "#aaaaaa",
-              align: "end",
-            },
-          ],
-        },
-      ],
+      paddingAll: "20px",
+      contents: [...titleContents, ...infoContents, ...membersSection],
     },
     footer: {
       type: "box",
       layout: "vertical",
       paddingAll: "12px",
+      paddingTop: "0px",
       contents: [
         {
           type: "button",
@@ -299,9 +208,10 @@ export function buildGroupCard(input: GroupCardInput): messagingApi.FlexMessage 
           color: "#06C755",
           height: "sm",
           action: {
-            type: "uri",
-            label: "加入此團",
-            uri: `https://liff.line.me/2009659299-kwXd0ja5?join=${input.id}`,
+            type: "postback",
+            label: "我要加入 ✋",
+            data: `action=join&groupId=${input.id}`,
+            displayText: "我要加入！",
           },
         },
       ],
@@ -310,7 +220,41 @@ export function buildGroupCard(input: GroupCardInput): messagingApi.FlexMessage 
 
   return {
     type: "flex",
-    altText: `開團：${input.roomName}（還差 ${remaining} 人）`,
+    altText: `🎯 ${input.roomName}（還差 ${remaining} 人）`,
     contents: bubble,
   };
 }
+
+// Card for sharing via shareTargetPicker (uses URI for recipients who may not have bot)
+export function buildShareableGroupCard(input: GroupCardInput): messagingApi.FlexMessage {
+  const card = buildGroupCard(input);
+  const bubble = card.contents as messagingApi.FlexBubble;
+  return {
+    ...card,
+    contents: {
+      ...bubble,
+      footer: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "12px",
+        paddingTop: "0px",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#06C755",
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "我要加入 ✋",
+              uri: `https://liff.line.me/2009659299-kwXd0ja5?join=${input.id}`,
+            },
+          },
+        ],
+      },
+    },
+  };
+}
+
+export { LOCATION_LABELS };
+export type { GroupCardInput };

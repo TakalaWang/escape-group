@@ -491,7 +491,7 @@
     </div>
     <div class="toast" id="toast"></div>
 
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script>
       const LIFF_ID = "2009659299-kwXd0ja5";
       const API = "https://escape-group.vercel.app/api";
@@ -529,23 +529,81 @@
       let busyRanges = [];
 
       async function init() {
+        if (typeof liff === "undefined") {
+          document.body.innerHTML = '<div style="padding:2rem;text-align:center">LIFF SDK 載入失敗，請重新整理頁面</div>';
+          return;
+        }
         await liff.init({ liffId: LIFF_ID });
         if (!liff.isLoggedIn()) {
           liff.login();
           return;
         }
         uid = (await liff.getProfile()).userId;
+
+        // Fast-track join: skip loading search UI
+        const joinId = new URLSearchParams(window.location.search).get("join");
+        if (joinId) {
+          document.getElementById("loadingState").innerHTML =
+            '<div class="spinner"></div><div class="loading-text">加入中...</div>';
+          try {
+            const res = await fetch(`${API}/groups/${joinId}/join`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lineUserId: uid }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+              // Check if user is friends with the bot
+              let isFriend = true;
+              try {
+                const friendship = await liff.getFriendship();
+                isFriend = friendship.friendFlag;
+              } catch (e) { /* assume friend if API fails */ }
+
+              const groupInfo = data.groupName
+                ? '<div style="font-size:14px;color:#666;margin-top:4px">「' + data.groupName + '」' + (data.currentMembers ? ' ' + data.currentMembers + '/' + data.maxMembers + '人' : '') + '</div>'
+                : '';
+
+              if (isFriend) {
+                document.getElementById("loadingState").innerHTML =
+                  '<div style="width:56px;height:56px;background:#06C755;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto">' +
+                    '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
+                  '</div>' +
+                  '<div style="font-size:18px;font-weight:700;margin-top:12px">加入成功！</div>' +
+                  groupInfo +
+                  '<div style="margin-top:16px"><button onclick="liff.closeWindow()" style="padding:10px 32px;border:none;border-radius:8px;background:#06C755;color:#fff;font-size:15px;font-weight:600">完成</button></div>';
+              } else {
+                const addFriendUrl = 'https://line.me/R/ti/p/' + (data.botBasicId || '');
+                document.getElementById("loadingState").innerHTML =
+                  '<div style="width:56px;height:56px;background:#06C755;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto">' +
+                    '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
+                  '</div>' +
+                  '<div style="font-size:18px;font-weight:700;margin-top:12px">加入成功！</div>' +
+                  groupInfo +
+                  '<div style="margin-top:20px;width:80%;max-width:260px">' +
+                    '<a href="' + addFriendUrl + '" style="display:block;padding:12px;border-radius:8px;background:#06C755;color:#fff;font-size:15px;font-weight:600;text-decoration:none;text-align:center">加入好友，接收通知 🔔</a>' +
+                    '<div style="font-size:12px;color:#aaa;margin-top:6px;text-align:center">加入好友後可收到團的最新動態</div>' +
+                    '<button onclick="liff.closeWindow()" style="display:block;width:100%;margin-top:12px;padding:10px;border:none;border-radius:8px;background:transparent;color:#888;font-size:14px;cursor:pointer">先跳過</button>' +
+                  '</div>';
+              }
+            } else {
+              document.getElementById("loadingState").innerHTML =
+                '<div style="font-size:40px">⚠️</div><div style="font-size:16px;font-weight:600;margin-top:8px">' + (data.error || "加入失敗") + '</div>' +
+                '<div style="margin-top:12px"><button onclick="liff.closeWindow()" style="padding:8px 24px;border:none;border-radius:8px;background:#f5f5f5;color:#333;font-size:14px">關閉</button></div>';
+            }
+          } catch (e) {
+            document.getElementById("loadingState").innerHTML =
+              '<div style="font-size:40px">❌</div><div style="font-size:16px;font-weight:600;margin-top:8px">加入失敗</div>' +
+              '<div style="margin-top:12px"><button onclick="liff.closeWindow()" style="padding:8px 24px;border:none;border-radius:8px;background:#f5f5f5;color:#333;font-size:14px">關閉</button></div>';
+          }
+          return;
+        }
+
         buildCityGrid();
         setupEvents();
         document.getElementById("loadingState").style.display = "none";
         document.getElementById("main").style.display = "block";
-        search(); // Load all groups initially
-
-        const joinId = new URLSearchParams(window.location.search).get("join");
-        if (joinId) {
-          const btn = document.createElement("button");
-          joinGroup(joinId, btn, "", 0);
-        }
+        search();
       }
 
       function buildCityGrid() {

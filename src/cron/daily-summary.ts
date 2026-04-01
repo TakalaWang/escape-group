@@ -160,24 +160,45 @@ export async function runDailySummary(): Promise<void> {
         await client.pushMessage({
           to: adminId,
           messages: [
-            { type: "text", text: textSummary },
             {
               type: "flex",
-              altText: "點擊分享到 OpenChat",
+              altText: "開團彙整",
               contents: {
                 type: "bubble",
-                size: "nano",
                 body: {
                   type: "box",
                   layout: "vertical",
+                  paddingAll: "16px",
+                  contents: [
+                    { type: "text", text: `📋 開團彙整（${summaryGroups.length} 團）`, weight: "bold", size: "md" },
+                    { type: "text", text: "選擇分享方式", size: "xs", color: "#888888", margin: "sm" },
+                  ],
+                },
+                footer: {
+                  type: "box",
+                  layout: "vertical",
+                  paddingAll: "12px",
+                  paddingTop: "0px",
+                  spacing: "sm",
                   contents: [
                     {
                       type: "button",
                       style: "primary",
                       color: "#06C755",
+                      height: "sm",
+                      action: {
+                        type: "clipboard" as any,
+                        label: "複製彙整文字 📋",
+                        clipboardText: textSummary,
+                      } as any,
+                    },
+                    {
+                      type: "button",
+                      style: "secondary",
+                      height: "sm",
                       action: {
                         type: "uri",
-                        label: "分享到 OpenChat",
+                        label: "分享卡片 📤（好友/群組）",
                         uri: "https://liff.line.me/2009659299-rbF8C1zz?share=all",
                       },
                     },

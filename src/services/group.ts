@@ -1,6 +1,6 @@
 import { db } from "../db/client.js";
 import { groups, groupMembers, users } from "../db/schema.js";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, ne } from "drizzle-orm";
 
 type CreateGroupInput = {
   roomName: string;
@@ -85,11 +85,11 @@ export async function getGroupsByHost(hostId: string) {
       status: groups.status,
       memberCount: sql<number>`(
         SELECT count(*)::int FROM group_members
-        WHERE group_members.group_id = ${groups.id}
+        WHERE group_members.group_id = groups.id
       )`,
     })
     .from(groups)
-    .where(eq(groups.hostId, hostId))
+    .where(and(eq(groups.hostId, hostId), ne(groups.status, "cancelled")))
     .orderBy(groups.createdAt);
 
   return results.map((r) => ({
@@ -98,12 +98,49 @@ export async function getGroupsByHost(hostId: string) {
   }));
 }
 
+export async function updateGroup(groupId: string, updates: Record<string, any>) {
+  const [updated] = await db
+    .update(groups)
+    .set(updates)
+    .where(eq(groups.id, groupId))
+    .returning();
+  return updated;
+}
+
 export async function cancelGroup(groupId: string, hostId: string): Promise<boolean> {
   await db
     .update(groups)
     .set({ status: "cancelled" })
     .where(and(eq(groups.id, groupId), eq(groups.hostId, hostId)));
   return true;
+}
+
+export async function getJoinedGroups(userId: string) {
+  const results = await db
+    .select({
+      id: groups.id,
+      roomName: groups.roomName,
+      datetime: groups.datetime,
+      maxMembers: groups.maxMembers,
+      prefilledMembers: groups.prefilledMembers,
+      status: groups.status,
+      hostName: users.displayName,
+      memberCount: sql<number>`(
+        SELECT count(*)::int FROM group_members
+        WHERE group_members.group_id = groups.id
+      )`,
+    })
+    .from(groupMembers)
+    .innerJoin(groups, eq(groupMembers.groupId, groups.id))
+    .innerJoin(users, eq(groups.hostId, users.id))
+    .where(and(eq(groupMembers.userId, userId), ne(groups.status, "cancelled")))
+    .orderBy(groups.datetime);
+
+  return results.map((r) => ({
+    ...r,
+    currentMembers: r.prefilledMembers + (r.memberCount ?? 0),
+    hostName: r.hostName ?? "Unknown",
+  }));
 }
 
 export async function getGroupMembers(groupId: string) {
