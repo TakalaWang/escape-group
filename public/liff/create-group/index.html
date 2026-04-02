@@ -610,32 +610,30 @@
         editGroupId = groupId;
         try {
           const res = await fetch(`${API}/groups/${groupId}`);
-          if (!res.ok) { showError("找不到此團"); return; }
+          if (!res.ok) { showError("找不到此團 (" + res.status + ")"); return; }
           const g = await res.json();
 
-          // Update header
+          // Update header and button
           document.querySelector(".header h1").textContent = "編輯團";
           document.querySelector(".header p").textContent = "修改後會通知所有團員";
           document.getElementById("submitBtn").textContent = "更新";
 
           // Fill form fields
-          document.getElementById("roomName").value = g.roomName || "";
-          document.getElementById("studio").value = g.studio || "";
-          document.getElementById("location").value = g.location || "";
-          document.getElementById("price").value = g.price || "";
-          document.getElementById("maxMembers").value = g.maxMembers || "";
-          document.getElementById("prefilledMembers").value = g.prefilledMembers || 1;
-          document.getElementById("minMembers").value = g.minMembers || "";
-          document.getElementById("duration").value = g.duration || "";
-          document.getElementById("note").value = g.note || "";
+          const setVal = (id, v) => { if (v != null && v !== "") document.getElementById(id).value = v; };
+          setVal("roomName", g.roomName);
+          setVal("studio", g.studio);
+          setVal("location", g.location);
+          setVal("price", g.price);
+          setVal("maxMembers", g.maxMembers);
+          setVal("prefilledMembers", g.prefilledMembers);
+          setVal("minMembers", g.minMembers);
+          setVal("duration", g.duration);
+          setVal("note", g.note);
           if (g.datetime) {
             const dt = new Date(g.datetime);
-            const y = dt.getFullYear();
-            const m = String(dt.getMonth() + 1).padStart(2, "0");
-            const d = String(dt.getDate()).padStart(2, "0");
-            const h = String(dt.getHours()).padStart(2, "0");
-            const min = String(dt.getMinutes()).padStart(2, "0");
-            document.getElementById("datetime").value = `${y}-${m}-${d}T${h}:${min}`;
+            const pad = (n) => String(n).padStart(2, "0");
+            document.getElementById("datetime").value =
+              `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
           }
         } catch (e) {
           showError("載入失敗：" + e.message);
