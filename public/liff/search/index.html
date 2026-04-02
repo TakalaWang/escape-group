@@ -4,21 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>找團</title>
+    <link rel="stylesheet" href="../shared/style.css" />
     <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC", sans-serif;
-        background: #f5f6f8;
-        color: #1a1a1a;
-        min-height: 100vh;
-        min-height: 100dvh;
-        padding-bottom: env(safe-area-inset-bottom, 0);
-        overscroll-behavior: contain;
-      }
       .header {
         background: linear-gradient(135deg, #333333 0%, #1a1a1a 100%);
         padding: 24px 20px 20px;
@@ -36,23 +23,6 @@
       }
       .content {
         padding: 16px;
-      }
-      .section {
-        background: white;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      }
-      .section-title {
-        font-size: 12px;
-        font-weight: 600;
-        color: #06c755;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #f0f0f0;
       }
       .filter-row {
         margin-bottom: 14px;
@@ -287,52 +257,6 @@
         color: #bbb;
         font-size: 14px;
       }
-      .loading-screen {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 60px 0;
-      }
-      .spinner {
-        width: 36px;
-        height: 36px;
-        border: 3px solid #e0e0e0;
-        border-top-color: #06c755;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      .loading-text {
-        margin-top: 12px;
-        font-size: 14px;
-        color: #999;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      .toast {
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%) translateY(20px);
-        background: #1a1a1a;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-size: 14px;
-        opacity: 0;
-        transition: all 0.3s;
-        z-index: 50;
-        pointer-events: none;
-      }
-      .toast.show {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -343,26 +267,7 @@
           transform: translateY(0);
         }
       }
-      @media (prefers-reduced-motion: reduce) {
-        *,
-        *::before,
-        *::after {
-          animation-duration: 0.01ms !important;
-          transition-duration: 0.01ms !important;
-        }
-      }
       @media (prefers-color-scheme: dark) {
-        body {
-          background: #1a1a1a;
-          color: #e5e5e5;
-        }
-        .section {
-          background: #2a2a2a;
-          box-shadow: none;
-        }
-        .section-title {
-          border-bottom-color: #333;
-        }
         input,
         select {
           background: #333;
@@ -401,8 +306,7 @@
         .rc-members {
           border-top-color: #333;
         }
-        .empty-results,
-        .loading-text {
+        .empty-results {
           color: #666;
         }
         .clear-btn {
@@ -411,10 +315,6 @@
         }
         .date-sep {
           color: #555;
-        }
-        .toast {
-          background: #e5e5e5;
-          color: #1a1a1a;
         }
         .region-header {
           background: #333;
@@ -492,37 +392,9 @@
     <div class="toast" id="toast"></div>
 
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="../shared/utils.js"></script>
     <script>
       const LIFF_ID = "2009659299-kwXd0ja5";
-      const API = "https://escape-group.vercel.app/api";
-      const LOCATIONS = {
-        北部: {
-          keelung: "基隆",
-          taipei: "台北",
-          new_taipei: "新北",
-          taoyuan: "桃園",
-          hsinchu: "新竹",
-          miaoli: "苗栗",
-        },
-        中部: {
-          taichung: "台中",
-          changhua: "彰化",
-          nantou: "南投",
-          yunlin: "雲林",
-          chiayi: "嘉義",
-        },
-        南部: { tainan: "台南", kaohsiung: "高雄", pingtung: "屏東" },
-        "東部+離島": {
-          yilan: "宜蘭",
-          hualien: "花蓮",
-          taitung: "台東",
-          penghu: "澎湖",
-          kinmen: "金門",
-          matsu: "馬祖",
-        },
-      };
-      const ALL_LOC = Object.values(LOCATIONS).reduce((a, r) => ({ ...a, ...r }), {});
-      const DAYS = ["日", "一", "二", "三", "四", "五", "六"];
       let uid = null;
       let selectedCities = new Set();
       let joinedIds = new Set();
@@ -530,7 +402,8 @@
 
       async function init() {
         if (typeof liff === "undefined") {
-          document.body.innerHTML = '<div style="padding:2rem;text-align:center">LIFF SDK 載入失敗，請重新整理頁面</div>';
+          document.body.innerHTML =
+            '<div style="padding:2rem;text-align:center">LIFF SDK 載入失敗，請重新整理頁面</div>';
           return;
         }
         await liff.init({ liffId: LIFF_ID });
@@ -558,37 +431,49 @@
               try {
                 const friendship = await liff.getFriendship();
                 isFriend = friendship.friendFlag;
-              } catch (e) { /* assume friend if API fails */ }
+              } catch (e) {
+                /* assume friend if API fails */
+              }
 
               const groupInfo = data.groupName
-                ? '<div style="font-size:14px;color:#666;margin-top:4px">「' + data.groupName + '」' + (data.currentMembers ? ' ' + data.currentMembers + '/' + data.maxMembers + '人' : '') + '</div>'
-                : '';
+                ? '<div style="font-size:14px;color:#666;margin-top:4px">「' +
+                  data.groupName +
+                  "」" +
+                  (data.currentMembers
+                    ? " " + data.currentMembers + "/" + data.maxMembers + "人"
+                    : "") +
+                  "</div>"
+                : "";
 
               if (isFriend) {
                 document.getElementById("loadingState").innerHTML =
                   '<div style="width:56px;height:56px;background:#06C755;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto">' +
-                    '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
-                  '</div>' +
+                  '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
+                  "</div>" +
                   '<div style="font-size:18px;font-weight:700;margin-top:12px">加入成功！</div>' +
                   groupInfo +
                   '<div style="margin-top:16px"><button onclick="liff.closeWindow()" style="padding:10px 32px;border:none;border-radius:8px;background:#06C755;color:#fff;font-size:15px;font-weight:600">完成</button></div>';
               } else {
-                const addFriendUrl = 'https://line.me/R/ti/p/' + (data.botBasicId || '');
+                const addFriendUrl = "https://line.me/R/ti/p/" + (data.botBasicId || "");
                 document.getElementById("loadingState").innerHTML =
                   '<div style="width:56px;height:56px;background:#06C755;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto">' +
-                    '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
-                  '</div>' +
+                  '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
+                  "</div>" +
                   '<div style="font-size:18px;font-weight:700;margin-top:12px">加入成功！</div>' +
                   groupInfo +
                   '<div style="margin-top:20px;width:80%;max-width:260px">' +
-                    '<a href="' + addFriendUrl + '" style="display:block;padding:12px;border-radius:8px;background:#06C755;color:#fff;font-size:15px;font-weight:600;text-decoration:none;text-align:center">加入好友，接收通知 🔔</a>' +
-                    '<div style="font-size:12px;color:#aaa;margin-top:6px;text-align:center">加入好友後可收到團的最新動態</div>' +
-                    '<button onclick="liff.closeWindow()" style="display:block;width:100%;margin-top:12px;padding:10px;border:none;border-radius:8px;background:transparent;color:#888;font-size:14px;cursor:pointer">先跳過</button>' +
-                  '</div>';
+                  '<a href="' +
+                  addFriendUrl +
+                  '" style="display:block;padding:12px;border-radius:8px;background:#06C755;color:#fff;font-size:15px;font-weight:600;text-decoration:none;text-align:center">加入好友，接收通知 🔔</a>' +
+                  '<div style="font-size:12px;color:#aaa;margin-top:6px;text-align:center">加入好友後可收到團的最新動態</div>' +
+                  '<button onclick="liff.closeWindow()" style="display:block;width:100%;margin-top:12px;padding:10px;border:none;border-radius:8px;background:transparent;color:#888;font-size:14px;cursor:pointer">先跳過</button>' +
+                  "</div>";
               }
             } else {
               document.getElementById("loadingState").innerHTML =
-                '<div style="font-size:40px">⚠️</div><div style="font-size:16px;font-weight:600;margin-top:8px">' + (data.error || "加入失敗") + '</div>' +
+                '<div style="font-size:40px">⚠️</div><div style="font-size:16px;font-weight:600;margin-top:8px">' +
+                (data.error || "加入失敗") +
+                "</div>" +
                 '<div style="margin-top:12px"><button onclick="liff.closeWindow()" style="padding:8px 24px;border:none;border-radius:8px;background:#f5f5f5;color:#333;font-size:14px">關閉</button></div>';
             }
           } catch (e) {
@@ -712,12 +597,6 @@
         return busyRanges.some((r) => start < r.end && end > r.start);
       }
 
-      function fmtDate(d) {
-        if (!d) return "";
-        const dt = new Date(d);
-        return `${dt.getMonth() + 1}/${dt.getDate()}(${DAYS[dt.getDay()]}) ${dt.getHours().toString().padStart(2, "0")}:${dt.getMinutes().toString().padStart(2, "0")}`;
-      }
-
       function renderResults(groups) {
         const el = document.getElementById("results");
         if (groups.length === 0) {
@@ -794,13 +673,6 @@
           btn.disabled = false;
           btn.textContent = "加入";
         }
-      }
-
-      function toast(msg) {
-        const el = document.getElementById("toast");
-        el.textContent = msg;
-        el.classList.add("show");
-        setTimeout(() => el.classList.remove("show"), 2000);
       }
 
       init().catch((e) => {

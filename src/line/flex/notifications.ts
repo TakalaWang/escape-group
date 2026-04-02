@@ -1,33 +1,5 @@
 import type { messagingApi } from "@line/bot-sdk";
-
-function buildProgressBar(current: number, max: number): messagingApi.FlexComponent {
-  const filled = Math.min(current, max);
-  const empty = max - filled;
-  const boxes: messagingApi.FlexComponent[] = [];
-  for (let i = 0; i < filled; i++) {
-    boxes.push({
-      type: "box",
-      layout: "vertical",
-      contents: [],
-      flex: 1,
-      height: "6px",
-      backgroundColor: "#06C755",
-      cornerRadius: "3px",
-    });
-  }
-  for (let i = 0; i < empty; i++) {
-    boxes.push({
-      type: "box",
-      layout: "vertical",
-      contents: [],
-      flex: 1,
-      height: "6px",
-      backgroundColor: "#E8E8E8",
-      cornerRadius: "3px",
-    });
-  }
-  return { type: "box", layout: "horizontal", contents: boxes, spacing: "xs" };
-}
+import { buildProgressBar } from "./shared.js";
 
 export function buildJoinNotification(
   memberName: string,
@@ -59,7 +31,13 @@ export function buildJoinNotification(
             color: "#888888",
             margin: "xs",
           },
-          { type: "box", layout: "horizontal", contents: (buildProgressBar(current, max) as any).contents, spacing: "xs", margin: "md" } as any,
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: (buildProgressBar(current, max) as any).contents,
+            spacing: "xs",
+            margin: "md",
+          } as any,
         ],
       },
     },
@@ -89,7 +67,13 @@ export function buildGroupFullNotification(
             color: "#888888",
             margin: "sm",
           },
-          { type: "box", layout: "horizontal", contents: (buildProgressBar(max, max) as any).contents, spacing: "xs", margin: "md" } as any,
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: (buildProgressBar(max, max) as any).contents,
+            spacing: "xs",
+            margin: "md",
+          } as any,
           {
             type: "text",
             text: "請建立 LINE 群組，然後把邀請連結貼回來給我。",
@@ -106,7 +90,10 @@ export function buildGroupFullNotification(
 
 export function buildLeaveRequestNotification(
   memberName: string,
-  groupName: string
+  groupName: string,
+  groupId: string,
+  memberDbId: string,
+  memberLineUserId: string
 ): messagingApi.FlexMessage {
   return {
     type: "flex",
@@ -135,15 +122,21 @@ export function buildLeaveRequestNotification(
             style: "primary",
             color: "#06C755",
             height: "sm",
-            flex: 1,
-            action: { type: "postback", label: "同意 ✓", data: "" },
+            action: {
+              type: "postback",
+              label: "同意 ✓",
+              data: `action=approve_leave&groupId=${groupId}&userId=${memberDbId}`,
+            },
           },
           {
             type: "button",
             style: "secondary",
             height: "sm",
-            flex: 1,
-            action: { type: "postback", label: "拒絕 ✗", data: "" },
+            action: {
+              type: "postback",
+              label: "拒絕 ✗",
+              data: `action=reject_leave&groupId=${groupId}&memberId=${memberLineUserId}`,
+            },
           },
         ],
       },

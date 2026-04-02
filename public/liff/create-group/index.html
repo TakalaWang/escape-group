@@ -4,21 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>開團</title>
+    <link rel="stylesheet" href="../shared/style.css" />
     <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang TC", sans-serif;
-        background: #f5f6f8;
-        color: #1a1a1a;
-        min-height: 100vh;
-        min-height: 100dvh;
-        padding-bottom: env(safe-area-inset-bottom, 0);
-        overscroll-behavior: contain;
-      }
       .header {
         background: linear-gradient(135deg, #06c755 0%, #05a647 100%);
         padding: 24px 20px 20px;
@@ -38,24 +25,6 @@
 
       .form-wrapper {
         padding: 16px;
-      }
-
-      .section {
-        background: white;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      }
-      .section-title {
-        font-size: 12px;
-        font-weight: 600;
-        color: #06c755;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #f0f0f0;
       }
 
       .form-group {
@@ -270,51 +239,7 @@
         animation: fadeIn 0.3s ease 0.8s both;
       }
 
-      .loading-screen {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 60px 0;
-      }
-      .spinner {
-        width: 36px;
-        height: 36px;
-        border: 3px solid #e0e0e0;
-        border-top-color: #06c755;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      .loading-text {
-        margin-top: 12px;
-        font-size: 14px;
-        color: #999;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        *,
-        *::before,
-        *::after {
-          animation-duration: 0.01ms !important;
-          transition-duration: 0.01ms !important;
-        }
-      }
       @media (prefers-color-scheme: dark) {
-        body {
-          background: #1a1a1a;
-          color: #e5e5e5;
-        }
-        .section {
-          background: #2a2a2a;
-          box-shadow: none;
-        }
-        .section-title {
-          border-bottom-color: #333;
-        }
         input,
         select,
         textarea {
@@ -345,24 +270,30 @@
         .close-link {
           color: #666;
         }
-        .toast {
-          background: #e5e5e5;
-          color: #1a1a1a;
-        }
       }
-      body.share-mode .share-hide { display: none !important; }
-      body.share-mode #shareLoading { display: block !important; }
+      body.share-mode .share-hide {
+        display: none !important;
+      }
+      body.share-mode #shareLoading {
+        display: block !important;
+      }
     </style>
   </head>
   <body>
-    <script>if(location.search.includes("share"))document.body.classList.add("share-mode");</script>
+    <script>
+      if (location.search.includes("share")) document.body.classList.add("share-mode");
+    </script>
     <div class="header share-hide">
       <h1>開團</h1>
       <p>填寫以下資訊，開團後別人可以直接加入你的團</p>
     </div>
-    <div id="shareLoading" class="share-only" style="display:none;padding:60px 20px;text-align:center;">
+    <div
+      id="shareLoading"
+      class="share-only"
+      style="display: none; padding: 60px 20px; text-align: center"
+    >
       <div class="spinner"></div>
-      <p style="margin-top:16px;color:#888;">正在準備分享...</p>
+      <p style="margin-top: 16px; color: #888">正在準備分享...</p>
     </div>
 
     <form id="form" class="share-hide">
@@ -542,23 +473,69 @@
       </div>
       <div class="success-text">開團成功</div>
       <div class="success-sub">訂閱者已收到通知</div>
-      <div id="successButtons" style="display:none;margin-top:20px;width:80%;max-width:280px">
-        <button onclick="copyGroupText()" style="width:100%;padding:10px;border:none;border-radius:8px;background:#f5f5f5;color:#333;font-size:14px;font-weight:600;margin-bottom:8px;cursor:pointer" id="copyTextBtn">
+      <div
+        id="successButtons"
+        style="display: none; margin-top: 20px; width: 80%; max-width: 280px"
+      >
+        <button
+          onclick="copyGroupText()"
+          style="
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: #f5f5f5;
+            color: #333;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            cursor: pointer;
+          "
+          id="copyTextBtn"
+        >
           📋 複製文字（貼到社群）
         </button>
-        <button onclick="shareToChat()" style="width:100%;padding:10px;border:none;border-radius:8px;background:#06C755;color:#fff;font-size:14px;font-weight:600;margin-bottom:8px;cursor:pointer;display:none" id="shareBtn">
+        <button
+          onclick="shareToChat()"
+          style="
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: #06c755;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            cursor: pointer;
+            display: none;
+          "
+          id="shareBtn"
+        >
           📤 分享卡片（好友/群組）
         </button>
-        <button onclick="liff.closeWindow()" style="width:100%;padding:10px;border:none;border-radius:8px;background:transparent;color:#888;font-size:14px;cursor:pointer">
+        <button
+          onclick="liff.closeWindow()"
+          style="
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: #888;
+            font-size: 14px;
+            cursor: pointer;
+          "
+        >
           關閉
         </button>
       </div>
     </div>
 
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="../shared/utils.js"></script>
     <script>
       const LIFF_ID = "2009659299-rbF8C1zz";
-      const API = "https://escape-group.vercel.app/api";
 
       async function init() {
         try {
@@ -610,7 +587,10 @@
         editGroupId = groupId;
         try {
           const res = await fetch(`${API}/groups/${groupId}`);
-          if (!res.ok) { showError("找不到此團 (" + res.status + ")"); return; }
+          if (!res.ok) {
+            showError("找不到此團 (" + res.status + ")");
+            return;
+          }
           const g = await res.json();
 
           // Update header and button
@@ -619,7 +599,9 @@
           document.getElementById("submitBtn").textContent = "更新";
 
           // Fill form fields
-          const setVal = (id, v) => { if (v != null && v !== "") document.getElementById(id).value = v; };
+          const setVal = (id, v) => {
+            if (v != null && v !== "") document.getElementById(id).value = v;
+          };
           setVal("roomName", g.roomName);
           setVal("studio", g.studio);
           setVal("location", g.location);
@@ -633,7 +615,7 @@
             const dt = new Date(g.datetime);
             const pad = (n) => String(n).padStart(2, "0");
             document.getElementById("datetime").value =
-              `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+              `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
           }
         } catch (e) {
           showError("載入失敗：" + e.message);
@@ -652,10 +634,11 @@
           const el = document.getElementById("shareLoading");
           el.innerHTML =
             '<textarea id="copyText" readonly style="width:100%;height:120px;font-size:14px;padding:12px;border:1px solid #ddd;border-radius:8px;resize:none;margin-bottom:12px;">' +
-            text.replace(/</g, "&lt;") + '</textarea>' +
+            text.replace(/</g, "&lt;") +
+            "</textarea>" +
             '<button id="copyBtn" style="width:100%;padding:12px;background:#06C755;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;">複製文字</button>' +
             '<p style="color:#888;font-size:13px;margin-top:8px;text-align:center;">複製後到社群聊天室貼上</p>';
-          document.getElementById("copyBtn").onclick = async function() {
+          document.getElementById("copyBtn").onclick = async function () {
             try {
               await navigator.clipboard.writeText(text);
               this.textContent = "✅ 已複製！";
@@ -671,7 +654,7 @@
           };
         } catch (e) {
           document.getElementById("shareLoading").innerHTML =
-            '<p style="color:#e53e3e;padding:20px;">載入失敗：' + e.message + '</p>';
+            '<p style="color:#e53e3e;padding:20px;">載入失敗：' + e.message + "</p>";
         }
       }
 
@@ -702,7 +685,9 @@
         } catch (e) {
           // Show error instead of silently closing
           document.getElementById("shareLoading").innerHTML =
-            '<p style="color:#e53e3e;padding:20px;">分享失敗：' + e.message + '</p>' +
+            '<p style="color:#e53e3e;padding:20px;">分享失敗：' +
+            e.message +
+            "</p>" +
             '<p style="color:#888;font-size:14px;">請關閉此視窗重試</p>';
         }
       }
@@ -729,7 +714,9 @@
         try {
           await navigator.clipboard.writeText(createdClipText);
           btn.textContent = "✅ 已複製！";
-          setTimeout(() => { btn.textContent = "📋 複製文字（貼到社群）"; }, 1500);
+          setTimeout(() => {
+            btn.textContent = "📋 複製文字（貼到社群）";
+          }, 1500);
         } catch (e) {
           // Fallback
           const ta = document.createElement("textarea");
@@ -741,7 +728,9 @@
           document.execCommand("copy");
           document.body.removeChild(ta);
           btn.textContent = "✅ 已複製！";
-          setTimeout(() => { btn.textContent = "📋 複製文字（貼到社群）"; }, 1500);
+          setTimeout(() => {
+            btn.textContent = "📋 複製文字（貼到社群）";
+          }, 1500);
         }
       }
 
@@ -807,9 +796,7 @@
             return;
           }
 
-          const url = editGroupId
-            ? `${API}/groups/${editGroupId}`
-            : `${API}/groups`;
+          const url = editGroupId ? `${API}/groups/${editGroupId}` : `${API}/groups`;
           const method = editGroupId ? "PUT" : "POST";
 
           const res = await fetch(url, {
@@ -828,21 +815,35 @@
 
           if (editGroupId) {
             // Edit mode: show success and close
-            document.getElementById("successOverlay").querySelector(".success-text").textContent = "更新成功";
-            document.getElementById("successOverlay").querySelector(".success-sub").textContent = "已通知所有團員";
+            document.getElementById("successOverlay").querySelector(".success-text").textContent =
+              "更新成功";
+            document.getElementById("successOverlay").querySelector(".success-sub").textContent =
+              "已通知所有團員";
             document.getElementById("successOverlay").classList.add("show");
-            setTimeout(() => { try { liff.closeWindow(); } catch(_) {} }, 1500);
+            setTimeout(() => {
+              try {
+                liff.closeWindow();
+              } catch (_) {}
+            }, 1500);
           } else {
             createdFlexCard = result.flexCard || null;
 
             // Build clipboard text
             const dt = payload.datetime ? new Date(payload.datetime) : null;
             const days = ["日", "一", "二", "三", "四", "五", "六"];
-            const dateStr = dt ? `${dt.getMonth()+1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2,"0")}:${dt.getMinutes().toString().padStart(2,"0")}` : "";
+            const dateStr = dt
+              ? `${dt.getMonth() + 1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2, "0")}:${dt.getMinutes().toString().padStart(2, "0")}`
+              : "";
             const locSelect = document.getElementById("location");
-            const locLabel = locSelect.selectedIndex > 0 ? locSelect.options[locSelect.selectedIndex].text : "";
-            const detailParts = [locLabel, payload.duration ? `${payload.duration}分` : "", payload.price ? `$${payload.price}/人` : ""].filter(Boolean);
-            createdClipText = `🎯 ${payload.roomName}${payload.studio ? `（${payload.studio}）` : ""}` +
+            const locLabel =
+              locSelect.selectedIndex > 0 ? locSelect.options[locSelect.selectedIndex].text : "";
+            const detailParts = [
+              locLabel,
+              payload.duration ? `${payload.duration}分` : "",
+              payload.price ? `$${payload.price}/人` : "",
+            ].filter(Boolean);
+            createdClipText =
+              `🎯 ${payload.roomName}${payload.studio ? `（${payload.studio}）` : ""}` +
               (dateStr ? `\n📅 ${dateStr}` : "") +
               (detailParts.length ? `\n📍 ${detailParts.join(" · ")}` : "") +
               `\n👥 ${payload.prefilledMembers}/${payload.maxMembers}人` +

@@ -1,12 +1,16 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, inArray } from "drizzle-orm";
 import { verifySignature } from "./line/verify.js";
 import { handleWebhookEvents } from "./handlers/webhook.js";
 import { validateCreateGroupInput, createGroup } from "./services/group.js";
 import { upsertUserFromLiff } from "./services/user.js";
 import { searchGroups, buildSearchQuery } from "./services/search.js";
-import { buildGroupCard, buildShareableGroupCard, LOCATION_LABELS } from "./line/flex/group-card.js";
+import {
+  buildGroupCard,
+  buildShareableGroupCard,
+  LOCATION_LABELS,
+} from "./line/flex/group-card.js";
 import { getLineClient } from "./line/client.js";
 import { db } from "./db/client.js";
 import { groupMembers, groups, groups as groupsTable, subscriptions, users } from "./db/schema.js";
@@ -67,7 +71,11 @@ app.post("/groups", async (c) => {
       const dt = new Date(body.datetime);
       const days = ["日", "一", "二", "三", "四", "五", "六"];
       const dateStr = `${dt.getMonth() + 1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2, "0")}:${dt.getMinutes().toString().padStart(2, "0")}`;
-      const detailParts = [locationLabel, body.duration ? `${body.duration}分` : "", body.price ? `$${body.price}/人` : ""].filter(Boolean);
+      const detailParts = [
+        locationLabel,
+        body.duration ? `${body.duration}分` : "",
+        body.price ? `$${body.price}/人` : "",
+      ].filter(Boolean);
       const clipText = `🎯 ${group.roomName}${body.studio ? `（${body.studio}）` : ""}\n📅 ${dateStr}${detailParts.length ? `\n📍 ${detailParts.join(" · ")}` : ""}\n👥 ${group.prefilledMembers}/${body.maxMembers}人\n\n👉 點此加入：\nhttps://liff.line.me/2009659299-kwXd0ja5?join=${group.id}`;
 
       const hostCard: any = {
@@ -179,10 +187,7 @@ app.post("/groups", async (c) => {
         try {
           await lineClient.pushMessage({
             to: sub.lineUserId,
-            messages: [
-              { type: "text", text: "🔔 新團符合你的訂閱！" },
-              buildGroupCard(cardData),
-            ],
+            messages: [{ type: "text", text: "🔔 新團符合你的訂閱！" }, buildGroupCard(cardData)],
           });
         } catch (e) {
           console.error("Failed to notify subscriber:", e);
@@ -256,7 +261,10 @@ app.get("/summary-text", async (c) => {
   const hostIds = [...new Set(openGroups.map((g) => g.hostId))];
   const hosts =
     hostIds.length > 0
-      ? await db.select({ id: users.id, displayName: users.displayName }).from(users)
+      ? await db
+          .select({ id: users.id, displayName: users.displayName })
+          .from(users)
+          .where(inArray(users.id, hostIds))
       : [];
   const hostMap = new Map(hosts.map((h) => [h.id, h.displayName]));
 
@@ -388,7 +396,10 @@ app.get("/my-joined-groups", async (c) => {
   const hostIds = [...new Set(joined.map((g) => g.hostId))];
   const hosts =
     hostIds.length > 0
-      ? await db.select({ id: users.id, displayName: users.displayName }).from(users)
+      ? await db
+          .select({ id: users.id, displayName: users.displayName })
+          .from(users)
+          .where(inArray(users.id, hostIds))
       : [];
   const hostMap = new Map(hosts.map((h) => [h.id, h.displayName]));
 
@@ -434,7 +445,8 @@ app.put("/groups/:id", async (c) => {
     if (body.roomName !== undefined) updates.roomName = body.roomName.trim();
     if (body.studio !== undefined) updates.studio = body.studio?.trim() || null;
     if (body.location !== undefined) updates.location = body.location || null;
-    if (body.datetime !== undefined) updates.datetime = body.datetime ? new Date(body.datetime) : null;
+    if (body.datetime !== undefined)
+      updates.datetime = body.datetime ? new Date(body.datetime) : null;
     if (body.duration !== undefined) updates.duration = body.duration ?? null;
     if (body.minMembers !== undefined) updates.minMembers = body.minMembers ?? null;
     if (body.maxMembers !== undefined) updates.maxMembers = body.maxMembers;
@@ -446,17 +458,26 @@ app.put("/groups/:id", async (c) => {
 
     // Build change summary for notification
     const changes: string[] = [];
-    if (body.datetime !== undefined && group.datetime?.toISOString() !== updates.datetime?.toISOString()) {
+    if (
+      body.datetime !== undefined &&
+      group.datetime?.toISOString() !== updates.datetime?.toISOString()
+    ) {
       const dt = updates.datetime;
       if (dt) {
         const days = ["日", "一", "二", "三", "四", "五", "六"];
-        changes.push(`📅 時間 → ${dt.getMonth()+1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2,"0")}:${dt.getMinutes().toString().padStart(2,"0")}`);
+        changes.push(
+          `📅 時間 → ${dt.getMonth() + 1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2, "0")}:${dt.getMinutes().toString().padStart(2, "0")}`
+        );
       }
     }
-    if (body.maxMembers !== undefined && body.maxMembers !== group.maxMembers) changes.push(`👥 人數上限 → ${body.maxMembers}`);
-    if (body.price !== undefined && body.price !== group.price) changes.push(`💰 費用 → $${body.price}/人`);
-    if (body.roomName !== undefined && body.roomName.trim() !== group.roomName) changes.push(`🎯 名稱 → ${body.roomName.trim()}`);
-    if (body.duration !== undefined && body.duration !== group.duration) changes.push(`⏱ 時長 → ${body.duration}分`);
+    if (body.maxMembers !== undefined && body.maxMembers !== group.maxMembers)
+      changes.push(`👥 人數上限 → ${body.maxMembers}`);
+    if (body.price !== undefined && body.price !== group.price)
+      changes.push(`💰 費用 → $${body.price}/人`);
+    if (body.roomName !== undefined && body.roomName.trim() !== group.roomName)
+      changes.push(`🎯 名稱 → ${body.roomName.trim()}`);
+    if (body.duration !== undefined && body.duration !== group.duration)
+      changes.push(`⏱ 時長 → ${body.duration}分`);
 
     // Notify members if there are changes
     if (changes.length > 0) {
@@ -466,8 +487,13 @@ app.put("/groups/:id", async (c) => {
         const text = `📢 「${updated.roomName}」已更新：\n${changes.join("\n")}`;
         for (const member of members) {
           try {
-            await lineClient.pushMessage({ to: member.lineUserId, messages: [{ type: "text", text }] });
-          } catch (e) { /* skip failed */ }
+            await lineClient.pushMessage({
+              to: member.lineUserId,
+              messages: [{ type: "text", text }],
+            });
+          } catch (e) {
+            /* skip failed */
+          }
         }
       } catch (e) {
         console.error("Failed to notify members of update:", e);
@@ -621,7 +647,9 @@ app.post("/groups/:id/join", async (c) => {
     try {
       const { getBotBasicId } = await import("./line/client.js");
       botBasicId = await getBotBasicId();
-    } catch (e) { /* non-critical */ }
+    } catch (e) {
+      /* non-critical */
+    }
 
     return c.json({
       status: "ok",

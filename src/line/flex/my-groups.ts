@@ -1,4 +1,5 @@
 import type { messagingApi } from "@line/bot-sdk";
+import { formatDate, STATUS_CONFIG } from "./shared.js";
 
 type MyGroup = {
   id: string;
@@ -7,23 +8,6 @@ type MyGroup = {
   maxMembers: number;
   currentMembers: number;
   status: string;
-};
-
-function formatDate(date: Date): string {
-  const days = ["日", "一", "二", "三", "四", "五", "六"];
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  const day = days[date.getDay()];
-  const h = date.getHours().toString().padStart(2, "0");
-  const min = date.getMinutes().toString().padStart(2, "0");
-  return `${m}/${d}(${day}) ${h}:${min}`;
-}
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  open: { label: "募集中", color: "#16A34A", bg: "#F0FDF4" },
-  full: { label: "已額滿", color: "#2563EB", bg: "#EFF6FF" },
-  completed: { label: "已完成", color: "#6B7280", bg: "#F3F4F6" },
-  cancelled: { label: "已取消", color: "#DC2626", bg: "#FEF2F2" },
 };
 
 export function buildMyGroupsCard(groups: MyGroup[]): messagingApi.FlexMessage {
@@ -246,7 +230,13 @@ export function buildJoinedGroupsCard(groups: JoinedGroup[]): messagingApi.FlexM
             paddingStart: "8px",
             paddingEnd: "8px",
             contents: [
-              { type: "text", text: status.label, size: "xxs", color: status.color, weight: "bold" },
+              {
+                type: "text",
+                text: status.label,
+                size: "xxs",
+                color: status.color,
+                weight: "bold",
+              },
             ],
           },
         ],

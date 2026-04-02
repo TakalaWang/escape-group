@@ -99,11 +99,7 @@ export async function getGroupsByHost(hostId: string) {
 }
 
 export async function updateGroup(groupId: string, updates: Record<string, any>) {
-  const [updated] = await db
-    .update(groups)
-    .set(updates)
-    .where(eq(groups.id, groupId))
-    .returning();
+  const [updated] = await db.update(groups).set(updates).where(eq(groups.id, groupId)).returning();
   return updated;
 }
 

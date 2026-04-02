@@ -16,6 +16,7 @@ import { buildMyGroupsCard, buildJoinedGroupsCard } from "../line/flex/my-groups
 import {
   buildJoinNotification,
   buildGroupFullNotification,
+  buildLeaveRequestNotification,
 } from "../line/flex/notifications.js";
 import { db } from "../db/client.js";
 import { users, subscriptions } from "../db/schema.js";
@@ -112,10 +113,7 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       ]);
       await client.replyMessage({
         replyToken: event.replyToken,
-        messages: [
-          buildMyGroupsCard(myGroups),
-          buildJoinedGroupsCard(joined),
-        ],
+        messages: [buildMyGroupsCard(myGroups), buildJoinedGroupsCard(joined)],
       });
       break;
     }
@@ -166,59 +164,13 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
         await client.pushMessage({
           to: host.lineUserId,
           messages: [
-            {
-              type: "flex",
-              altText: `${user.displayName} 想退出「${group.roomName}」`,
-              contents: {
-                type: "bubble",
-                size: "kilo",
-                body: {
-                  type: "box",
-                  layout: "vertical",
-                  paddingAll: "16px",
-                  contents: [
-                    { type: "text", text: `${user.displayName} 想退出`, size: "sm", weight: "bold" },
-                    {
-                      type: "text",
-                      text: `「${group.roomName}」`,
-                      size: "sm",
-                      color: "#888888",
-                      margin: "xs",
-                    },
-                  ],
-                },
-                footer: {
-                  type: "box",
-                  layout: "horizontal",
-                  spacing: "sm",
-                  paddingAll: "12px",
-                  paddingTop: "0px",
-                  contents: [
-                    {
-                      type: "button",
-                      style: "primary",
-                      color: "#06C755",
-                      height: "sm",
-                      action: {
-                        type: "postback",
-                        label: "同意 ✓",
-                        data: `action=approve_leave&groupId=${groupId}&userId=${user.id}`,
-                      },
-                    },
-                    {
-                      type: "button",
-                      style: "secondary",
-                      height: "sm",
-                      action: {
-                        type: "postback",
-                        label: "拒絕 ✗",
-                        data: `action=reject_leave&groupId=${groupId}&memberId=${user.lineUserId}`,
-                      },
-                    },
-                  ],
-                },
-              },
-            },
+            buildLeaveRequestNotification(
+              user.displayName,
+              group.roomName,
+              groupId,
+              user.id,
+              user.lineUserId
+            ),
           ],
         });
       }
@@ -602,8 +554,19 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
                 layout: "vertical",
                 paddingAll: "16px",
                 contents: [
-                  { type: "text", text: `📋 ${allOpen.length} 團開放中`, weight: "bold", size: "sm" },
-                  { type: "text", text: "點下方按鈕複製彙整文字", size: "xs", color: "#888888", margin: "xs" },
+                  {
+                    type: "text",
+                    text: `📋 ${allOpen.length} 團開放中`,
+                    weight: "bold",
+                    size: "sm",
+                  },
+                  {
+                    type: "text",
+                    text: "點下方按鈕複製彙整文字",
+                    size: "xs",
+                    color: "#888888",
+                    margin: "xs",
+                  },
                 ],
               },
               footer: {

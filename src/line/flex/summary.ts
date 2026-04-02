@@ -1,4 +1,5 @@
 import type { messagingApi } from "@line/bot-sdk";
+import { LOCATION_LABELS, formatDate } from "./shared.js";
 
 type SummaryGroup = {
   id: string;
@@ -13,39 +14,6 @@ type SummaryGroup = {
   hostName?: string;
   price?: number | null;
 };
-
-const LOCATION_LABELS: Record<string, string> = {
-  keelung: "基隆",
-  taipei: "台北",
-  new_taipei: "新北",
-  taoyuan: "桃園",
-  hsinchu: "新竹",
-  miaoli: "苗栗",
-  taichung: "台中",
-  changhua: "彰化",
-  nantou: "南投",
-  yunlin: "雲林",
-  chiayi: "嘉義",
-  tainan: "台南",
-  kaohsiung: "高雄",
-  pingtung: "屏東",
-  yilan: "宜蘭",
-  hualien: "花蓮",
-  taitung: "台東",
-  penghu: "澎湖",
-  kinmen: "金門",
-  matsu: "馬祖",
-};
-
-function formatDate(date: Date): string {
-  const days = ["日", "一", "二", "三", "四", "五", "六"];
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  const day = days[date.getDay()];
-  const h = date.getHours().toString().padStart(2, "0");
-  const min = date.getMinutes().toString().padStart(2, "0");
-  return `${m}/${d}(${day}) ${h}:${min}`;
-}
 
 function buildBubble(g: SummaryGroup): messagingApi.FlexBubble {
   const remaining = g.maxMembers - g.currentMembers;

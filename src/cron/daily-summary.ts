@@ -1,6 +1,6 @@
 import { db } from "../db/client.js";
 import { groups, users, subscriptions } from "../db/schema.js";
-import { eq, sql, asc } from "drizzle-orm";
+import { eq, sql, asc, inArray } from "drizzle-orm";
 import { getLineClient } from "../line/client.js";
 import { buildSummaryCards } from "../line/flex/summary.js";
 
@@ -131,7 +131,10 @@ export async function runDailySummary(): Promise<void> {
   const hostIds = [...new Set(openGroups.map((g) => g.hostId))];
   const hosts =
     hostIds.length > 0
-      ? await db.select({ id: users.id, displayName: users.displayName }).from(users)
+      ? await db
+          .select({ id: users.id, displayName: users.displayName })
+          .from(users)
+          .where(inArray(users.id, hostIds))
       : [];
   const hostMap = new Map(hosts.map((h) => [h.id, h.displayName]));
 
@@ -170,8 +173,19 @@ export async function runDailySummary(): Promise<void> {
                   layout: "vertical",
                   paddingAll: "16px",
                   contents: [
-                    { type: "text", text: `📋 開團彙整（${summaryGroups.length} 團）`, weight: "bold", size: "md" },
-                    { type: "text", text: "選擇分享方式", size: "xs", color: "#888888", margin: "sm" },
+                    {
+                      type: "text",
+                      text: `📋 開團彙整（${summaryGroups.length} 團）`,
+                      weight: "bold",
+                      size: "md",
+                    },
+                    {
+                      type: "text",
+                      text: "選擇分享方式",
+                      size: "xs",
+                      color: "#888888",
+                      margin: "sm",
+                    },
                   ],
                 },
                 footer: {

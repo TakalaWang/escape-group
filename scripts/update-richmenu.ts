@@ -91,24 +91,21 @@ async function main() {
   console.log(`Created new rich menu: ${richMenuId}`);
 
   // 6. Upload image to new menu
-  const uploadRes = await fetch(
-    `https://api-data.line.me/v2/bot/richmenu/${richMenuId}/content`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-        "Content-Type": "image/png",
-      },
-      body: imgBuffer,
-    }
-  );
+  const uploadRes = await fetch(`https://api-data.line.me/v2/bot/richmenu/${richMenuId}/content`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      "Content-Type": "image/png",
+    },
+    body: imgBuffer,
+  });
   console.log(`Image upload: ${uploadRes.status}`);
 
   // 7. Set as default
-  const setDefaultRes = await fetch(
-    `https://api.line.me/v2/bot/user/all/richmenu/${richMenuId}`,
-    { method: "POST", headers }
-  );
+  const setDefaultRes = await fetch(`https://api.line.me/v2/bot/user/all/richmenu/${richMenuId}`, {
+    method: "POST",
+    headers,
+  });
   console.log(`Set default: ${setDefaultRes.status}`);
 
   // 8. Delete old menu
