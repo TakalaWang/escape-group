@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import { verifySignature } from "./line/verify.js";
+import { verifyLiffToken } from "./line/verify-liff.js";
 import { handleWebhookEvents } from "./handlers/webhook.js";
 import { validateCreateGroupInput, createGroup } from "./services/group.js";
 import { upsertUserFromLiff } from "./services/user.js";
@@ -14,15 +15,33 @@ import {
 import { getLineClient } from "./line/client.js";
 import { db } from "./db/client.js";
 import { groupMembers, groups, groups as groupsTable, subscriptions, users } from "./db/schema.js";
+import { notifyAdmins, notifySubscribers } from "./services/notification.js";
+import { LIFF_SEARCH_URL, LIFF_CREATE_URL, ALLOWED_ORIGINS } from "./constants.js";
+import { formatDate } from "./line/flex/shared.js";
 
 const app = new Hono().basePath("/api");
 
-app.use("/groups", cors());
-app.use("/groups/*", cors());
-app.use("/my-groups", cors());
-app.use("/subscriptions/*", cors());
-app.use("/subscriptions", cors());
-app.use("/my-joined-groups", cors());
+const corsMiddleware = cors({ origin: ALLOWED_ORIGINS });
+app.use("/groups", corsMiddleware);
+app.use("/groups/*", corsMiddleware);
+app.use("/my-groups", corsMiddleware);
+app.use("/subscriptions/*", corsMiddleware);
+app.use("/subscriptions", corsMiddleware);
+app.use("/my-joined-groups", corsMiddleware);
+
+// LIFF token auth middleware for mutation endpoints
+async function requireLiffAuth(c: any): Promise<{ userId: string } | Response> {
+  const authHeader = c.req.header("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return c.json({ error: "Missing authorization header" }, 401);
+  }
+  const token = authHeader.slice(7);
+  const lineUserId = await verifyLiffToken(token);
+  if (!lineUserId) {
+    return c.json({ error: "Invalid or expired token" }, 401);
+  }
+  return { userId: lineUserId };
+}
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 
@@ -46,10 +65,12 @@ app.post("/webhook", async (c) => {
 
 app.post("/groups", async (c) => {
   try {
+    const auth = await requireLiffAuth(c);
+    if (auth instanceof Response) return auth;
+    const lineUserId = auth.userId;
+
     const body = await c.req.json();
-    const lineUserId = body.lineUserId as string;
     const displayName = body.displayName as string;
-    if (!lineUserId) return c.json({ error: "Missing lineUserId" }, 400);
 
     const validation = validateCreateGroupInput(body);
     if (!validation.ok) return c.json({ error: validation.error }, 400);
@@ -57,7 +78,6 @@ app.post("/groups", async (c) => {
     const user = await upsertUserFromLiff(lineUserId, displayName || "Unknown");
     const group = await createGroup(user.id, body);
 
-    // Send card to host (can long-press to forward to OpenChat)
     const client = getLineClient();
     const cardData = {
       ...group,
@@ -65,21 +85,20 @@ app.post("/groups", async (c) => {
       currentMembers: group.prefilledMembers,
       price: group.price,
     };
+
+    // Send host card with share/copy buttons
     try {
-      // Build host card with share/copy buttons
       const locationLabel = body.location ? (LOCATION_LABELS[body.location] ?? body.location) : "";
-      const dt = new Date(body.datetime);
-      const days = ["日", "一", "二", "三", "四", "五", "六"];
-      const dateStr = `${dt.getMonth() + 1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2, "0")}:${dt.getMinutes().toString().padStart(2, "0")}`;
+      const dateStr = body.datetime ? formatDate(new Date(body.datetime)) : "";
       const detailParts = [
         locationLabel,
         body.duration ? `${body.duration}分` : "",
         body.price ? `$${body.price}/人` : "",
       ].filter(Boolean);
-      const clipText = `🎯 ${group.roomName}${body.studio ? `（${body.studio}）` : ""}\n📅 ${dateStr}${detailParts.length ? `\n📍 ${detailParts.join(" · ")}` : ""}\n👥 ${group.prefilledMembers}/${body.maxMembers}人\n\n👉 點此加入：\nhttps://liff.line.me/2009659299-kwXd0ja5?join=${group.id}`;
+      const clipText = `🎯 ${group.roomName}${body.studio ? `（${body.studio}）` : ""}\n📅 ${dateStr}${detailParts.length ? `\n📍 ${detailParts.join(" · ")}` : ""}\n👥 ${group.prefilledMembers}/${body.maxMembers}人\n\n👉 點此加入：\n${LIFF_SEARCH_URL}?join=${group.id}`;
 
-      const hostCard: any = {
-        type: "flex",
+      const hostCard = {
+        type: "flex" as const,
         altText: `✅ 開團成功：${group.roomName}`,
         contents: {
           ...JSON.parse(JSON.stringify(buildGroupCard(cardData).contents)),
@@ -98,7 +117,7 @@ app.post("/groups", async (c) => {
                 action: {
                   type: "uri",
                   label: "分享卡片 📤（好友/群組）",
-                  uri: `https://liff.line.me/2009659299-rbF8C1zz?share=${group.id}`,
+                  uri: `${LIFF_CREATE_URL}?share=${group.id}`,
                 },
               },
               {
@@ -126,78 +145,15 @@ app.post("/groups", async (c) => {
           },
         },
       };
-      await client.pushMessage({
-        to: lineUserId,
-        messages: [hostCard],
-      });
+      await client.pushMessage({ to: lineUserId, messages: [hostCard as any] });
     } catch (err) {
       console.error("Failed to send card to host:", err);
     }
 
-    // Notify admins
-    const adminIds = (process.env.ADMIN_USER_IDS ?? "").split(",").filter(Boolean);
-    for (const adminId of adminIds) {
-      if (adminId === lineUserId) continue; // Skip if host is admin
-      try {
-        await client.pushMessage({ to: adminId, messages: [buildGroupCard(cardData)] });
-      } catch (err) {
-        console.error("Failed to notify admin:", err);
-      }
-    }
+    // Notify admins and subscribers (non-blocking)
+    notifyAdmins(lineUserId, cardData).catch((e) => console.error("Admin notification failed:", e));
+    notifySubscribers(cardData, body, lineUserId).catch((e) => console.error("Subscriber notification failed:", e));
 
-    // Notify subscribers
-    try {
-      const allSubs = await db
-        .select({
-          userId: subscriptions.userId,
-          type: subscriptions.type,
-          value: subscriptions.value,
-          lineUserId: users.lineUserId,
-        })
-        .from(subscriptions)
-        .innerJoin(users, eq(subscriptions.userId, users.id));
-
-      const lineClient = getLineClient();
-      const notified = new Set<string>();
-
-      for (const sub of allSubs) {
-        if (sub.lineUserId === lineUserId || notified.has(sub.lineUserId)) continue;
-
-        let matches = false;
-        if (sub.type === "location" && body.location === sub.value) matches = true;
-        if (sub.type === "keyword") {
-          const kw = sub.value.toLowerCase();
-          if (body.roomName?.toLowerCase().includes(kw) || body.studio?.toLowerCase().includes(kw))
-            matches = true;
-        }
-        if (sub.type === "price" && body.price != null) {
-          const [pMin, pMax] = sub.value.split("-").map(Number);
-          if ((!pMin || body.price >= pMin) && (!pMax || body.price <= pMax)) matches = true;
-        }
-        if (sub.type === "weekday" && body.datetime) {
-          const groupDate = new Date(body.datetime);
-          const dayOfWeek = groupDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-          const subscribedDays = sub.value.split(",").map(Number);
-          if (subscribedDays.includes(dayOfWeek)) matches = true;
-        }
-
-        if (!matches) continue;
-        notified.add(sub.lineUserId);
-
-        try {
-          await lineClient.pushMessage({
-            to: sub.lineUserId,
-            messages: [{ type: "text", text: "🔔 新團符合你的訂閱！" }, buildGroupCard(cardData)],
-          });
-        } catch (e) {
-          console.error("Failed to notify subscriber:", e);
-        }
-      }
-    } catch (err) {
-      console.error("Subscriber notification failed:", err);
-    }
-
-    // Build Flex card for shareTargetPicker (uses URI for join since recipients may not have bot)
     const flexCard = buildShareableGroupCard({
       ...group,
       hostName: user.displayName,
@@ -308,12 +264,15 @@ app.get("/subscriptions", async (c) => {
 // Add subscription
 app.post("/subscriptions", async (c) => {
   try {
+    const auth = await requireLiffAuth(c);
+    if (auth instanceof Response) return auth;
+
     const body = await c.req.json();
-    const { lineUserId, type, value } = body;
-    if (!lineUserId || !type || !value) return c.json({ error: "Missing fields" }, 400);
+    const { type, value } = body;
+    if (!type || !value) return c.json({ error: "Missing fields" }, 400);
 
     const { upsertUserFromLiff } = await import("./services/user.js");
-    const user = await upsertUserFromLiff(lineUserId, body.displayName || "Unknown");
+    const user = await upsertUserFromLiff(auth.userId, body.displayName || "Unknown");
 
     // Check duplicate
     const existing = await db
@@ -349,6 +308,9 @@ app.post("/subscriptions", async (c) => {
 
 // Delete subscription
 app.delete("/subscriptions/:id", async (c) => {
+  const auth = await requireLiffAuth(c);
+  if (auth instanceof Response) return auth;
+
   const id = c.req.param("id");
   await db.delete(subscriptions).where(eq(subscriptions.id, id));
   return c.json({ status: "ok" });
@@ -431,11 +393,11 @@ app.get("/groups/:id", async (c) => {
 // Update group
 app.put("/groups/:id", async (c) => {
   try {
-    const body = await c.req.json();
-    const lineUserId = body.lineUserId;
-    if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+    const auth = await requireLiffAuth(c);
+    if (auth instanceof Response) return auth;
 
-    const user = await upsertUserFromLiff(lineUserId, "");
+    const body = await c.req.json();
+    const user = await upsertUserFromLiff(auth.userId, "");
     const { getGroupById, updateGroup, getGroupMembers } = await import("./services/group.js");
     const group = await getGroupById(c.req.param("id"));
     if (!group) return c.json({ error: "Not found" }, 404);
@@ -462,12 +424,8 @@ app.put("/groups/:id", async (c) => {
       body.datetime !== undefined &&
       group.datetime?.toISOString() !== updates.datetime?.toISOString()
     ) {
-      const dt = updates.datetime;
-      if (dt) {
-        const days = ["日", "一", "二", "三", "四", "五", "六"];
-        changes.push(
-          `📅 時間 → ${dt.getMonth() + 1}/${dt.getDate()}(${days[dt.getDay()]}) ${dt.getHours().toString().padStart(2, "0")}:${dt.getMinutes().toString().padStart(2, "0")}`
-        );
+      if (updates.datetime) {
+        changes.push(`📅 時間 → ${formatDate(updates.datetime)}`);
       }
     }
     if (body.maxMembers !== undefined && body.maxMembers !== group.maxMembers)
@@ -501,69 +459,74 @@ app.put("/groups/:id", async (c) => {
     }
 
     return c.json({ status: "ok", group: updated });
-  } catch (err: any) {
-    console.error("Update group error:", err?.message);
-    return c.json({ error: "Failed" }, 500);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Update group error:", message);
+    return c.json({ error: message }, 500);
   }
 });
 
 // Cancel group
 app.post("/groups/:id/cancel", async (c) => {
   try {
-    const body = await c.req.json();
-    const lineUserId = body.lineUserId;
-    if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+    const auth = await requireLiffAuth(c);
+    if (auth instanceof Response) return auth;
 
-    const user = await upsertUserFromLiff(lineUserId, "");
+    const user = await upsertUserFromLiff(auth.userId, "");
 
     const { cancelGroup } = await import("./services/group.js");
     await cancelGroup(c.req.param("id"), user.id);
     return c.json({ status: "ok" });
   } catch (err) {
-    return c.json({ error: "Failed" }, 500);
+    const message = err instanceof Error ? err.message : String(err);
+    return c.json({ error: message }, 500);
   }
 });
 
 // Kick member
 app.post("/groups/:id/kick", async (c) => {
   try {
-    const body = await c.req.json();
-    const { lineUserId, memberId } = body;
-    if (!lineUserId || !memberId) return c.json({ error: "Missing fields" }, 400);
+    const auth = await requireLiffAuth(c);
+    if (auth instanceof Response) return auth;
 
-    const user = await upsertUserFromLiff(lineUserId, "");
+    const body = await c.req.json();
+    const { memberId } = body;
+    if (!memberId) return c.json({ error: "Missing memberId" }, 400);
+
+    const user = await upsertUserFromLiff(auth.userId, "");
 
     const { kickMember } = await import("./services/member.js");
     const result = await kickMember(c.req.param("id"), memberId, user.id);
     if (!result.ok) return c.json({ error: result.reason }, 400);
     return c.json({ status: "ok" });
   } catch (err) {
-    return c.json({ error: "Failed" }, 500);
+    const message = err instanceof Error ? err.message : String(err);
+    return c.json({ error: message }, 500);
   }
 });
 
 // Leave group from LIFF
 app.post("/groups/:id/leave", async (c) => {
   try {
-    const body = await c.req.json();
-    const lineUserId = body.lineUserId;
-    if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+    const auth = await requireLiffAuth(c);
+    if (auth instanceof Response) return auth;
 
-    const user = await upsertUserFromLiff(lineUserId, "");
+    const user = await upsertUserFromLiff(auth.userId, "");
 
     const { leaveGroup } = await import("./services/member.js");
     const result = await leaveGroup(c.req.param("id"), user.id);
     if (!result.ok) return c.json({ error: result.reason }, 400);
     return c.json({ status: "ok" });
   } catch (err) {
-    return c.json({ error: "Failed" }, 500);
+    const message = err instanceof Error ? err.message : String(err);
+    return c.json({ error: message }, 500);
   }
 });
 
 // Cron: daily summary
 app.post("/cron/daily-summary", async (c) => {
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && c.req.header("authorization") !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || c.req.header("authorization") !== `Bearer ${cronSecret}`) {
     return c.json({ error: "Unauthorized" }, 401);
   }
   try {
@@ -579,7 +542,7 @@ app.post("/cron/daily-summary", async (c) => {
 // Cron: reminders
 app.post("/cron/reminders", async (c) => {
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && c.req.header("authorization") !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || c.req.header("authorization") !== `Bearer ${cronSecret}`) {
     return c.json({ error: "Unauthorized" }, 401);
   }
   try {
@@ -595,11 +558,11 @@ app.post("/cron/reminders", async (c) => {
 // Join group from LIFF
 app.post("/groups/:id/join", async (c) => {
   try {
-    const body = await c.req.json();
-    const lineUserId = body.lineUserId;
-    if (!lineUserId) return c.json({ error: "Missing userId" }, 400);
+    const auth = await requireLiffAuth(c);
+    if (auth instanceof Response) return auth;
 
-    const user = await upsertUserFromLiff(lineUserId, body.displayName || "");
+    const body = await c.req.json();
+    const user = await upsertUserFromLiff(auth.userId, body.displayName || "");
 
     const { joinGroup } = await import("./services/member.js");
     const result = await joinGroup(c.req.param("id"), user.id);
@@ -658,9 +621,10 @@ app.post("/groups/:id/join", async (c) => {
       currentMembers,
       maxMembers: group?.maxMembers ?? 0,
     });
-  } catch (err: any) {
-    console.error("Join group error:", err?.message || err);
-    return c.json({ error: "Failed", detail: err?.message }, 500);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Join group error:", message);
+    return c.json({ error: message }, 500);
   }
 });
 

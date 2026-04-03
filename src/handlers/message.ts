@@ -1,23 +1,37 @@
 import type { MessageEvent } from "@line/bot-sdk";
 import { getLineClient } from "../line/client.js";
 import { db } from "../db/client.js";
-import { groups, groupMembers, users, subscriptions } from "../db/schema.js";
+import { groups, groupMembers, users, subscriptions, pendingActions } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 
-const pendingSearchKeyword = new Map<string, boolean>();
-const pendingSubKeyword = new Map<string, boolean>();
-const pendingSubPrice = new Map<string, boolean>();
-
-export function setPendingSearch(userId: string) {
-  pendingSearchKeyword.set(userId, true);
+export async function setPendingSearch(userId: string) {
+  await db
+    .insert(pendingActions)
+    .values({ lineUserId: userId, action: "search_keyword" })
+    .onConflictDoUpdate({
+      target: pendingActions.lineUserId,
+      set: { action: "search_keyword", createdAt: new Date() },
+    });
 }
 
-export function setPendingSubKeyword(userId: string) {
-  pendingSubKeyword.set(userId, true);
+export async function setPendingSubKeyword(userId: string) {
+  await db
+    .insert(pendingActions)
+    .values({ lineUserId: userId, action: "sub_keyword" })
+    .onConflictDoUpdate({
+      target: pendingActions.lineUserId,
+      set: { action: "sub_keyword", createdAt: new Date() },
+    });
 }
 
-export function setPendingSubPrice(userId: string) {
-  pendingSubPrice.set(userId, true);
+export async function setPendingSubPrice(userId: string) {
+  await db
+    .insert(pendingActions)
+    .values({ lineUserId: userId, action: "sub_price" })
+    .onConflictDoUpdate({
+      target: pendingActions.lineUserId,
+      set: { action: "sub_price", createdAt: new Date() },
+    });
 }
 
 export async function handleMessage(event: MessageEvent): Promise<void> {
@@ -30,9 +44,20 @@ export async function handleMessage(event: MessageEvent): Promise<void> {
   const text = (event.message as { type: "text"; text: string }).text;
   const client = getLineClient();
 
+  // Check if user has a pending action in DB
+  const [pending] = await db
+    .select()
+    .from(pendingActions)
+    .where(eq(pendingActions.lineUserId, userId))
+    .limit(1);
+
+  if (pending) {
+    // Delete the pending action immediately
+    await db.delete(pendingActions).where(eq(pendingActions.id, pending.id));
+  }
+
   // Check if user is providing a subscription keyword
-  if (pendingSubKeyword.has(userId)) {
-    pendingSubKeyword.delete(userId);
+  if (pending?.action === "sub_keyword") {
     const { upsertUser } = await import("../services/user.js");
     const user = await upsertUser(userId);
 
@@ -71,8 +96,7 @@ export async function handleMessage(event: MessageEvent): Promise<void> {
   }
 
   // Check if user is providing a subscription price
-  if (pendingSubPrice.has(userId)) {
-    pendingSubPrice.delete(userId);
+  if (pending?.action === "sub_price") {
     const price = parseInt(text);
     if (isNaN(price) || price <= 0) {
       await client.replyMessage({
@@ -104,8 +128,7 @@ export async function handleMessage(event: MessageEvent): Promise<void> {
   }
 
   // Check if user is providing a search keyword
-  if (pendingSearchKeyword.has(userId)) {
-    pendingSearchKeyword.delete(userId);
+  if (pending?.action === "search_keyword") {
     const { searchGroups, buildSearchQuery } = await import("../services/search.js");
     const { buildSummaryCard } = await import("../line/flex/summary.js");
 

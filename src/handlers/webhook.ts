@@ -1,5 +1,5 @@
 import type { WebhookEvent } from "@line/bot-sdk";
-import { handlePostback } from "./postback.js";
+import { handlePostback } from "./postback/index.js";
 import { handleFollow } from "./follow.js";
 import { handleJoinEvent } from "./join.js";
 import { handleMessage } from "./message.js";

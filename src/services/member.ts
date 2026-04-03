@@ -1,5 +1,5 @@
 import { db } from "../db/client.js";
-import { groupMembers, groups, users } from "../db/schema.js";
+import { groupMembers, groups } from "../db/schema.js";
 import { eq, and, sql } from "drizzle-orm";
 
 type JoinResult =
@@ -7,68 +7,65 @@ type JoinResult =
   | { ok: false; reason: "not_found" | "full" | "already_joined" | "cancelled" | "is_host" };
 
 export async function joinGroup(groupId: string, userId: string): Promise<JoinResult> {
-  const group = await db.select().from(groups).where(eq(groups.id, groupId)).limit(1);
-  if (group.length === 0) return { ok: false, reason: "not_found" };
+  return await db.transaction(async (tx) => {
+    const group = await tx.select().from(groups).where(eq(groups.id, groupId)).limit(1);
+    if (group.length === 0) return { ok: false, reason: "not_found" } as const;
 
-  const g = group[0];
-  if (g.status === "cancelled") return { ok: false, reason: "cancelled" };
-  if (g.hostId === userId) return { ok: false, reason: "is_host" };
+    const g = group[0];
+    if (g.status === "cancelled") return { ok: false, reason: "cancelled" } as const;
+    if (g.hostId === userId) return { ok: false, reason: "is_host" } as const;
 
-  // Cross-channel host check: compare displayName since LIFF and Messaging API have different userIds
-  const [host] = await db.select().from(users).where(eq(users.id, g.hostId)).limit(1);
-  const [joiner] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (host && joiner && host.displayName === joiner.displayName) {
-    return { ok: false, reason: "is_host" };
-  }
+    const existing = await tx
+      .select()
+      .from(groupMembers)
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)))
+      .limit(1);
+    if (existing.length > 0) return { ok: false, reason: "already_joined" } as const;
 
-  const existing = await db
-    .select()
-    .from(groupMembers)
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)))
-    .limit(1);
-  if (existing.length > 0) return { ok: false, reason: "already_joined" };
+    const [{ count }] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(groupMembers)
+      .where(eq(groupMembers.groupId, groupId));
+    const currentMembers = g.prefilledMembers + count;
+    if (currentMembers >= g.maxMembers) return { ok: false, reason: "full" } as const;
 
-  const [{ count }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(groupMembers)
-    .where(eq(groupMembers.groupId, groupId));
-  const currentMembers = g.prefilledMembers + count;
-  if (currentMembers >= g.maxMembers) return { ok: false, reason: "full" };
+    await tx.insert(groupMembers).values({ groupId, userId });
 
-  await db.insert(groupMembers).values({ groupId, userId });
+    const isFull = currentMembers + 1 >= g.maxMembers;
+    if (isFull) {
+      await tx.update(groups).set({ status: "full" }).where(eq(groups.id, groupId));
+    }
 
-  const isFull = currentMembers + 1 >= g.maxMembers;
-  if (isFull) {
-    await db.update(groups).set({ status: "full" }).where(eq(groups.id, groupId));
-  }
-
-  return { ok: true, groupFull: isFull, groupId };
+    return { ok: true, groupFull: isFull, groupId } as const;
+  });
 }
 
 type LeaveResult = { ok: true } | { ok: false; reason: "not_found" | "not_member" };
 
 export async function leaveGroup(groupId: string, userId: string): Promise<LeaveResult> {
-  const group = await db.select().from(groups).where(eq(groups.id, groupId)).limit(1);
-  if (group.length === 0) return { ok: false, reason: "not_found" };
+  return await db.transaction(async (tx) => {
+    const group = await tx.select().from(groups).where(eq(groups.id, groupId)).limit(1);
+    if (group.length === 0) return { ok: false, reason: "not_found" } as const;
 
-  const existing = await db
-    .select()
-    .from(groupMembers)
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)))
-    .limit(1);
-  if (existing.length === 0) return { ok: false, reason: "not_member" };
+    const existing = await tx
+      .select()
+      .from(groupMembers)
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)))
+      .limit(1);
+    if (existing.length === 0) return { ok: false, reason: "not_member" } as const;
 
-  await db
-    .delete(groupMembers)
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
+    await tx
+      .delete(groupMembers)
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)));
 
-  // Reopen group if it was full
-  const g = group[0];
-  if (g.status === "full") {
-    await db.update(groups).set({ status: "open" }).where(eq(groups.id, groupId));
-  }
+    // Reopen group if it was full
+    const g = group[0];
+    if (g.status === "full") {
+      await tx.update(groups).set({ status: "open" }).where(eq(groups.id, groupId));
+    }
 
-  return { ok: true };
+    return { ok: true } as const;
+  });
 }
 
 export async function kickMember(
@@ -76,24 +73,26 @@ export async function kickMember(
   memberId: string,
   hostId: string
 ): Promise<{ ok: boolean; reason?: string }> {
-  const group = await db.select().from(groups).where(eq(groups.id, groupId)).limit(1);
-  if (group.length === 0) return { ok: false, reason: "not_found" };
-  if (group[0].hostId !== hostId) return { ok: false, reason: "not_host" };
+  return await db.transaction(async (tx) => {
+    const group = await tx.select().from(groups).where(eq(groups.id, groupId)).limit(1);
+    if (group.length === 0) return { ok: false, reason: "not_found" };
+    if (group[0].hostId !== hostId) return { ok: false, reason: "not_host" };
 
-  const existing = await db
-    .select()
-    .from(groupMembers)
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, memberId)))
-    .limit(1);
-  if (existing.length === 0) return { ok: false, reason: "not_member" };
+    const existing = await tx
+      .select()
+      .from(groupMembers)
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, memberId)))
+      .limit(1);
+    if (existing.length === 0) return { ok: false, reason: "not_member" };
 
-  await db
-    .delete(groupMembers)
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, memberId)));
+    await tx
+      .delete(groupMembers)
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, memberId)));
 
-  if (group[0].status === "full") {
-    await db.update(groups).set({ status: "open" }).where(eq(groups.id, groupId));
-  }
+    if (group[0].status === "full") {
+      await tx.update(groups).set({ status: "open" }).where(eq(groups.id, groupId));
+    }
 
-  return { ok: true };
+    return { ok: true };
+  });
 }
