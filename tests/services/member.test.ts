@@ -73,17 +73,15 @@ describe("joinGroup", () => {
       const chain: any = { from: vi.fn().mockReturnThis(), where: vi.fn() };
       if (callCount === 1) {
         chain.where.mockReturnValue({
-          limit: vi
-            .fn()
-            .mockResolvedValue([
-              {
-                id: "g1",
-                status: "cancelled",
-                hostId: "host-1",
-                prefilledMembers: 1,
-                maxMembers: 4,
-              },
-            ]),
+          limit: vi.fn().mockResolvedValue([
+            {
+              id: "g1",
+              status: "cancelled",
+              hostId: "host-1",
+              prefilledMembers: 1,
+              maxMembers: 4,
+            },
+          ]),
         });
       }
       return chain;
