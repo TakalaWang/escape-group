@@ -152,7 +152,9 @@ app.post("/groups", async (c) => {
 
     // Notify admins and subscribers (non-blocking)
     notifyAdmins(lineUserId, cardData).catch((e) => console.error("Admin notification failed:", e));
-    notifySubscribers(cardData, body, lineUserId).catch((e) => console.error("Subscriber notification failed:", e));
+    notifySubscribers(cardData, body, lineUserId).catch((e) =>
+      console.error("Subscriber notification failed:", e)
+    );
 
     const flexCard = buildShareableGroupCard({
       ...group,

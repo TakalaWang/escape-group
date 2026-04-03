@@ -27,7 +27,13 @@ export async function handleSearch(
               contents: [
                 { type: "text", text: "🔍 找團", weight: "bold", size: "lg" },
                 { type: "separator", margin: "md" },
-                { type: "text", text: "選擇篩選方式：", size: "sm", margin: "lg", color: "#888888" },
+                {
+                  type: "text",
+                  text: "選擇篩選方式：",
+                  size: "sm",
+                  margin: "lg",
+                  color: "#888888",
+                },
               ],
             },
             footer: {
@@ -49,7 +55,11 @@ export async function handleSearch(
                 {
                   type: "button",
                   style: "secondary",
-                  action: { type: "postback", label: "依關鍵字搜尋", data: "action=search_keyword" },
+                  action: {
+                    type: "postback",
+                    label: "依關鍵字搜尋",
+                    data: "action=search_keyword",
+                  },
                 },
               ],
             },
@@ -174,7 +184,13 @@ export async function handleCopyAllGroups(
             paddingAll: "16px",
             contents: [
               { type: "text", text: `📋 ${allOpen.length} 團開放中`, weight: "bold", size: "sm" },
-              { type: "text", text: "點下方按鈕複製彙整文字", size: "xs", color: "#888888", margin: "xs" },
+              {
+                type: "text",
+                text: "點下方按鈕複製彙整文字",
+                size: "xs",
+                color: "#888888",
+                margin: "xs",
+              },
             ],
           },
           footer: {

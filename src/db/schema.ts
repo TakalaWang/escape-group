@@ -1,4 +1,13 @@
-import { pgTable, text, integer, timestamp, uuid, pgEnum, uniqueIndex, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  integer,
+  timestamp,
+  uuid,
+  pgEnum,
+  uniqueIndex,
+  index,
+} from "drizzle-orm/pg-core";
 
 export const locationEnum = pgEnum("location", [
   "keelung",

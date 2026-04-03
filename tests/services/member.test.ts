@@ -72,7 +72,19 @@ describe("joinGroup", () => {
       callCount++;
       const chain: any = { from: vi.fn().mockReturnThis(), where: vi.fn() };
       if (callCount === 1) {
-        chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "g1", status: "cancelled", hostId: "host-1", prefilledMembers: 1, maxMembers: 4 }]) });
+        chain.where.mockReturnValue({
+          limit: vi
+            .fn()
+            .mockResolvedValue([
+              {
+                id: "g1",
+                status: "cancelled",
+                hostId: "host-1",
+                prefilledMembers: 1,
+                maxMembers: 4,
+              },
+            ]),
+        });
       }
       return chain;
     });
@@ -87,7 +99,13 @@ describe("joinGroup", () => {
       callCount++;
       const chain: any = { from: vi.fn().mockReturnThis(), where: vi.fn() };
       if (callCount === 1) {
-        chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "g1", status: "open", hostId: "user-1", prefilledMembers: 1, maxMembers: 4 }]) });
+        chain.where.mockReturnValue({
+          limit: vi
+            .fn()
+            .mockResolvedValue([
+              { id: "g1", status: "open", hostId: "user-1", prefilledMembers: 1, maxMembers: 4 },
+            ]),
+        });
       }
       return chain;
     });
@@ -102,7 +120,13 @@ describe("joinGroup", () => {
       callCount++;
       const chain: any = { from: vi.fn().mockReturnThis(), where: vi.fn() };
       if (callCount === 1) {
-        chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "g1", status: "open", hostId: "host-1", prefilledMembers: 1, maxMembers: 4 }]) });
+        chain.where.mockReturnValue({
+          limit: vi
+            .fn()
+            .mockResolvedValue([
+              { id: "g1", status: "open", hostId: "host-1", prefilledMembers: 1, maxMembers: 4 },
+            ]),
+        });
       } else if (callCount === 2) {
         chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "member-1" }]) });
       }
@@ -123,7 +147,13 @@ describe("joinGroup", () => {
         limit: vi.fn(),
       };
       if (callCount === 1) {
-        chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "g1", status: "open", hostId: "host-1", prefilledMembers: 1, maxMembers: 4 }]) });
+        chain.where.mockReturnValue({
+          limit: vi
+            .fn()
+            .mockResolvedValue([
+              { id: "g1", status: "open", hostId: "host-1", prefilledMembers: 1, maxMembers: 4 },
+            ]),
+        });
       } else if (callCount === 2) {
         chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([]) });
       } else if (callCount === 3) {
@@ -147,7 +177,13 @@ describe("joinGroup", () => {
         limit: vi.fn(),
       };
       if (callCount === 1) {
-        chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "g1", status: "open", hostId: "host-1", prefilledMembers: 1, maxMembers: 3 }]) });
+        chain.where.mockReturnValue({
+          limit: vi
+            .fn()
+            .mockResolvedValue([
+              { id: "g1", status: "open", hostId: "host-1", prefilledMembers: 1, maxMembers: 3 },
+            ]),
+        });
       } else if (callCount === 2) {
         chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([]) });
       } else if (callCount === 3) {
@@ -174,7 +210,13 @@ describe("joinGroup", () => {
         limit: vi.fn(),
       };
       if (callCount === 1) {
-        chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "g1", status: "open", hostId: "host-1", prefilledMembers: 1, maxMembers: 6 }]) });
+        chain.where.mockReturnValue({
+          limit: vi
+            .fn()
+            .mockResolvedValue([
+              { id: "g1", status: "open", hostId: "host-1", prefilledMembers: 1, maxMembers: 6 },
+            ]),
+        });
       } else if (callCount === 2) {
         chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([]) });
       } else if (callCount === 3) {
@@ -208,7 +250,9 @@ describe("leaveGroup", () => {
       callCount++;
       const chain: any = { from: vi.fn().mockReturnThis(), where: vi.fn() };
       if (callCount === 1) {
-        chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "g1", status: "open" }]) });
+        chain.where.mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ id: "g1", status: "open" }]),
+        });
       } else {
         chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([]) });
       }
@@ -225,7 +269,9 @@ describe("leaveGroup", () => {
       callCount++;
       const chain: any = { from: vi.fn().mockReturnThis(), where: vi.fn() };
       if (callCount === 1) {
-        chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "g1", status: "full" }]) });
+        chain.where.mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ id: "g1", status: "full" }]),
+        });
       } else {
         chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "member-1" }]) });
       }
@@ -252,7 +298,9 @@ describe("kickMember", () => {
       callCount++;
       const chain: any = { from: vi.fn().mockReturnThis(), where: vi.fn() };
       if (callCount === 1) {
-        chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "g1", hostId: "host-1", status: "open" }]) });
+        chain.where.mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ id: "g1", hostId: "host-1", status: "open" }]),
+        });
       }
       return chain;
     });
@@ -267,7 +315,9 @@ describe("kickMember", () => {
       callCount++;
       const chain: any = { from: vi.fn().mockReturnThis(), where: vi.fn() };
       if (callCount === 1) {
-        chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "g1", hostId: "host-1", status: "open" }]) });
+        chain.where.mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ id: "g1", hostId: "host-1", status: "open" }]),
+        });
       } else {
         chain.where.mockReturnValue({ limit: vi.fn().mockResolvedValue([{ id: "member-1" }]) });
       }

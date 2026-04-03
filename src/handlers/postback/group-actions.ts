@@ -144,7 +144,13 @@ export async function handleLeave(
     await client.pushMessage({
       to: host.lineUserId,
       messages: [
-        buildLeaveRequestNotification(user.displayName, group.roomName, groupId, user.id, user.lineUserId),
+        buildLeaveRequestNotification(
+          user.displayName,
+          group.roomName,
+          groupId,
+          user.id,
+          user.lineUserId
+        ),
       ],
     });
   }
