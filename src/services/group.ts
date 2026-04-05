@@ -1,31 +1,12 @@
 import { db } from "../db/client.js";
 import { groups, groupMembers, users } from "../db/schema.js";
 import { eq, and, sql, ne } from "drizzle-orm";
-
-type CreateGroupInput = {
-  roomName: string;
-  studio?: string;
-  location?:
-    | "taipei"
-    | "new_taipei"
-    | "taoyuan"
-    | "hsinchu"
-    | "taichung"
-    | "tainan"
-    | "kaohsiung"
-    | "yilan"
-    | "hualien";
-  datetime?: string;
-  duration?: number;
-  minMembers?: number;
-  maxMembers: number;
-  prefilledMembers?: number;
-  price?: number;
-  note?: string;
-};
+import type { CreateGroupInput } from "../schemas.js";
 
 type ValidationResult = { ok: true } | { ok: false; error: string };
 
+// Legacy validator kept for backwards compat with existing tests.
+// New endpoints should use Zod schemas from ../schemas.ts directly.
 export function validateCreateGroupInput(input: Partial<CreateGroupInput>): ValidationResult {
   if (!input.roomName || input.roomName.trim().length === 0) {
     return { ok: false, error: "密室名稱為必填" };
@@ -99,7 +80,11 @@ export async function getGroupsByHost(hostId: string) {
 }
 
 export async function updateGroup(groupId: string, updates: Record<string, any>) {
-  const [updated] = await db.update(groups).set(updates).where(eq(groups.id, groupId)).returning();
+  const [updated] = await db
+    .update(groups)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(eq(groups.id, groupId))
+    .returning();
   return updated;
 }
 

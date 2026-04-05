@@ -61,3 +61,16 @@ function toast(msg) {
     el.classList.remove("show");
   }, 2000);
 }
+
+// Fetch with LIFF access token in Authorization header.
+// Requires liff.init() to have been called and user logged in.
+async function authedFetch(url, options) {
+  options = options || {};
+  const headers = new Headers(options.headers || {});
+  const token = liff.getAccessToken();
+  if (token) headers.set("Authorization", "Bearer " + token);
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  return fetch(url, Object.assign({}, options, { headers }));
+}

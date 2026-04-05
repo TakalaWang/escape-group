@@ -22,9 +22,9 @@ export async function notifySubscribers(
   cardData: GroupCardInput,
   groupInput: {
     roomName?: string;
-    studio?: string;
-    location?: string;
-    price?: number;
+    studio?: string | null;
+    location?: string | null;
+    price?: number | null;
     datetime?: string;
   },
   excludeLineUserId: string

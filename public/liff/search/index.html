@@ -419,9 +419,8 @@
           document.getElementById("loadingState").innerHTML =
             '<div class="spinner"></div><div class="loading-text">加入中...</div>';
           try {
-            const res = await fetch(`${API}/groups/${joinId}/join`, {
+            const res = await authedFetch(`${API}/groups/${joinId}/join`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ lineUserId: uid }),
             });
             const data = await res.json();
@@ -653,9 +652,8 @@
         btn.disabled = true;
         btn.textContent = "加入中...";
         try {
-          const res = await fetch(`${API}/groups/${groupId}/join`, {
+          const res = await authedFetch(`${API}/groups/${groupId}/join`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ lineUserId: uid }),
           });
           const data = await res.json();

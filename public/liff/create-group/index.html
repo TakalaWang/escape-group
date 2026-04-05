@@ -799,9 +799,8 @@
           const url = editGroupId ? `${API}/groups/${editGroupId}` : `${API}/groups`;
           const method = editGroupId ? "PUT" : "POST";
 
-          const res = await fetch(url, {
+          const res = await authedFetch(url, {
             method,
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
 

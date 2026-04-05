@@ -4,7 +4,7 @@ import { and, eq, sql, inArray } from "drizzle-orm";
 import { verifySignature } from "./line/verify.js";
 import { verifyLiffToken } from "./line/verify-liff.js";
 import { handleWebhookEvents } from "./handlers/webhook.js";
-import { validateCreateGroupInput, createGroup } from "./services/group.js";
+import { createGroup } from "./services/group.js";
 import { upsertUserFromLiff } from "./services/user.js";
 import { searchGroups, buildSearchQuery } from "./services/search.js";
 import {
@@ -18,6 +18,13 @@ import { groupMembers, groups, groups as groupsTable, subscriptions, users } fro
 import { notifyAdmins, notifySubscribers } from "./services/notification.js";
 import { LIFF_SEARCH_URL, LIFF_CREATE_URL, ALLOWED_ORIGINS } from "./constants.js";
 import { formatDate } from "./line/flex/shared.js";
+import {
+  CreateGroupSchema,
+  UpdateGroupSchema,
+  SubscriptionSchema,
+  KickMemberSchema,
+} from "./schemas.js";
+import type { ZodSchema } from "zod";
 
 const app = new Hono().basePath("/api");
 
@@ -28,6 +35,35 @@ app.use("/my-groups", corsMiddleware);
 app.use("/subscriptions/*", corsMiddleware);
 app.use("/subscriptions", corsMiddleware);
 app.use("/my-joined-groups", corsMiddleware);
+
+// Run a promise after response is sent (survives serverless function lifecycle).
+// Falls back to fire-and-forget if executionCtx is not available (local dev).
+function runInBackground(c: any, promise: Promise<unknown>): void {
+  try {
+    c.executionCtx?.waitUntil(promise);
+  } catch {
+    // Local dev or no executionCtx available
+    promise.catch(() => {});
+  }
+}
+
+// Parse JSON body with Zod schema. Returns the data or a 400 Response.
+async function parseBody<T>(c: any, schema: ZodSchema<T>): Promise<T | Response> {
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    const firstIssue = result.error.issues[0];
+    const path = firstIssue.path.join(".");
+    const message = path ? `${path}: ${firstIssue.message}` : firstIssue.message;
+    return c.json({ error: message }, 400);
+  }
+  return result.data;
+}
 
 // LIFF token auth middleware for mutation endpoints
 async function requireLiffAuth(c: any): Promise<{ userId: string } | Response> {
@@ -69,13 +105,16 @@ app.post("/groups", async (c) => {
     if (auth instanceof Response) return auth;
     const lineUserId = auth.userId;
 
-    const body = await c.req.json();
-    const displayName = body.displayName as string;
+    const body = await parseBody(c, CreateGroupSchema);
+    if (body instanceof Response) return body;
 
-    const validation = validateCreateGroupInput(body);
-    if (!validation.ok) return c.json({ error: validation.error }, 400);
+    // Extra validation: prefilledMembers < maxMembers
+    const prefilled = body.prefilledMembers ?? 1;
+    if (prefilled >= body.maxMembers) {
+      return c.json({ error: "已有人數必須小於人數上限" }, 400);
+    }
 
-    const user = await upsertUserFromLiff(lineUserId, displayName || "Unknown");
+    const user = await upsertUserFromLiff(lineUserId, body.displayName || "Unknown");
     const group = await createGroup(user.id, body);
 
     const client = getLineClient();
@@ -150,10 +189,18 @@ app.post("/groups", async (c) => {
       console.error("Failed to send card to host:", err);
     }
 
-    // Notify admins and subscribers (non-blocking)
-    notifyAdmins(lineUserId, cardData).catch((e) => console.error("Admin notification failed:", e));
-    notifySubscribers(cardData, body, lineUserId).catch((e) =>
-      console.error("Subscriber notification failed:", e)
+    // Notify admins and subscribers in background (survives after response is sent)
+    runInBackground(
+      c,
+      notifyAdmins(lineUserId, cardData).catch((e) =>
+        console.error("Admin notification failed:", e)
+      )
+    );
+    runInBackground(
+      c,
+      notifySubscribers(cardData, body, lineUserId).catch((e) =>
+        console.error("Subscriber notification failed:", e)
+      )
     );
 
     const flexCard = buildShareableGroupCard({
@@ -269,9 +316,9 @@ app.post("/subscriptions", async (c) => {
     const auth = await requireLiffAuth(c);
     if (auth instanceof Response) return auth;
 
-    const body = await c.req.json();
+    const body = await parseBody(c, SubscriptionSchema);
+    if (body instanceof Response) return body;
     const { type, value } = body;
-    if (!type || !value) return c.json({ error: "Missing fields" }, 400);
 
     const { upsertUserFromLiff } = await import("./services/user.js");
     const user = await upsertUserFromLiff(auth.userId, body.displayName || "Unknown");
@@ -398,7 +445,9 @@ app.put("/groups/:id", async (c) => {
     const auth = await requireLiffAuth(c);
     if (auth instanceof Response) return auth;
 
-    const body = await c.req.json();
+    const body = await parseBody(c, UpdateGroupSchema);
+    if (body instanceof Response) return body;
+
     const user = await upsertUserFromLiff(auth.userId, "");
     const { getGroupById, updateGroup, getGroupMembers } = await import("./services/group.js");
     const group = await getGroupById(c.req.param("id"));
@@ -491,9 +540,9 @@ app.post("/groups/:id/kick", async (c) => {
     const auth = await requireLiffAuth(c);
     if (auth instanceof Response) return auth;
 
-    const body = await c.req.json();
+    const body = await parseBody(c, KickMemberSchema);
+    if (body instanceof Response) return body;
     const { memberId } = body;
-    if (!memberId) return c.json({ error: "Missing memberId" }, 400);
 
     const user = await upsertUserFromLiff(auth.userId, "");
 

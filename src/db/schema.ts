@@ -74,6 +74,7 @@ export const groups = pgTable(
     lineGroupId: text("line_group_id"),
     lastAnnouncedAt: timestamp("last_announced_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("groups_status_idx").on(table.status),
